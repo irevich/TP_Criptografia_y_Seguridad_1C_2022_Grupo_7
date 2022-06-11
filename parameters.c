@@ -152,8 +152,8 @@ static void print_parameters(struct parameters * parameters) {
 }
 
 
-int main(int argc, char **argv) {
-    struct parameters parameters;
-    parse_args(argc, argv, &parameters);
-    print_parameters(&parameters);
-}
+// int main(int argc, char **argv) {
+//     struct parameters parameters;
+//     parse_args(argc, argv, &parameters);
+//     print_parameters(&parameters);
+// }

@@ -3,10 +3,11 @@
 #include "bmp_parsing.h"
 
 int main(int argc, char *argv[]) {
+    char * bmp_filepath = "./archivos/back.bmp";
 
-    char * bmp_filepath = "back.bmp";
+    //Then, we read the bmp header
     bmp_file * bmp_file = read_bmp_file(bmp_filepath);
-    print_bmp_file(bmp_file);
-
+    print_bmp_file(bmp_file);    
+    free(bmp_file);
     return 0;
 }
