@@ -4,7 +4,7 @@ CCFLAGS = -Wall -g
 SOURCES := $(wildcard *.c)
 OBJECTS := $(SOURCES:%.c=%.o)
 
-OUTPUT := stegobmp
+OUTPUT := stegobmp.out
 
 all:
 	${CC} $(SOURCES) $(CCFLAGS) -o $(OUTPUT)

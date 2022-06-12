@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "bmp_parsing.h"
+#include "include/bmp_parsing.h"
 
 int main(int argc, char *argv[]) {
-    char * bmp_filepath = "./archivos/back.bmp";
+    char * bmp_filepath = "resources/lado.bmp";
 
     //Then, we read the bmp header
     bmp_file * bmp_file = read_bmp_file(bmp_filepath);

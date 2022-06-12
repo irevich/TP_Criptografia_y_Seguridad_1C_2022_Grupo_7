@@ -1,4 +1,4 @@
-#include "bmp_parsing.h"
+#include "include/bmp_parsing.h"
 
 bmp_file * read_bmp_file(char * filepath){
    //Allocate memory for header
@@ -11,13 +11,13 @@ bmp_file * read_bmp_file(char * filepath){
         return NULL;
     }
 
-   ReadUShort(fp,header->type,FALSE);
+   ReadUShort(fp, &(header->type), FALSE);
    fprintf(stderr,"ID is: %d, should be %d\n",header->type,'M'*256+'B');
-   ReadUInt(fp,header->file_size,FALSE);
+   ReadUInt(fp,&(header->file_size),FALSE);
    fprintf(stderr,"File size is %d bytes\n",header->file_size);
-   ReadUShort(fp,header->reserved1,FALSE);
-   ReadUShort(fp,header->reserved2,FALSE);
-   ReadUInt(fp,header->offset,FALSE);
+   ReadUShort(fp,&(header->reserved1),FALSE);
+   ReadUShort(fp,&(header->reserved2),FALSE);
+   ReadUInt(fp,&(header->offset),FALSE);
    fprintf(stderr,"Offset to image data is %d bytes\n",header->offset);
    
    //infoheader section
@@ -48,7 +48,7 @@ bmp_file * read_bmp_file(char * filepath){
     fseek(fp, header->offset, SEEK_SET);
 
 
-    char * body = (char*) malloc(info_header->image_size);
+    uint8_t * body = (uint8_t*) malloc(info_header->image_size);
     fread(body,info_header->image_size,1,fp);
 
     //Finally, create a bmp file with header and body data
