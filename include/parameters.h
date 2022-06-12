@@ -2,7 +2,7 @@
 #define __PARAMETERS_H__
 #include <stdbool.h>
 
-struct parameters{
+typedef struct parameters{
     bool embed;
     char * input_file_path;
     char * carrier_file_path;
@@ -11,7 +11,7 @@ struct parameters{
     int encryption_algorithm;
     int encryption_mode;
     char * password;
-};
+} parameters_t;
 
 enum stego_algorithm {
     LSB1,
@@ -38,6 +38,6 @@ enum encryption_mode {
  * args con defaults o la seleccion humana. Puede cortar
  * la ejecución.
  */
-void parse_args(const int argc, char **argv, struct parameters *args);
+parameters_t * parse_args(const int argc, char **argv);
 
 #endif

@@ -37,8 +37,8 @@ usage(const char *progname) {
     exit(1);
 }
 
-void 
-parse_args(const int argc, char **argv, struct parameters * parameters) {
+parameters_t * parse_args(const int argc, char **argv) {
+    parameters_t * parameters = (parameters_t *) malloc(sizeof(parameters_t));
     memset(parameters, 0, sizeof(*parameters));
 
     char opt;
@@ -57,8 +57,8 @@ parse_args(const int argc, char **argv, struct parameters * parameters) {
             {"pass", optional_argument, NULL, 'k'},
             {0, 0, 0, 0}
         };
-        const char * short_options = "hvexip:o:s:a:m:k:";
-    while((opt = getopt_long(argc, argv, short_options, long_options, &option_index))){
+        const char * short_options = "hAexip:o:s:a:m:k:";
+    while((opt = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1){
         switch (opt)
         {
         case 'h':
@@ -130,11 +130,13 @@ parse_args(const int argc, char **argv, struct parameters * parameters) {
             exit(1);
               
         default:
-            usage(argv[0]);
+            //printf("En el default\n");
+            //usage(argv[0]);
             break;
         
         }      
     }
+    return parameters;
 }
 
 // Remove comment for debugging tool
