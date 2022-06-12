@@ -12,25 +12,26 @@ typedef struct pixel{
 }pixel;
 
 typedef struct bmp_info_header{
-    unsigned int header_size;   //Header size in bytes
-    int width;                  //Width of the image
-    int height;                 //Height of the image
-    unsigned short int planes;  //Number of color planes
-    unsigned short int bits;    //Bits per pixel
-    unsigned int compression;   //Compression type
-    unsigned int image_size;    //Image size in bytes     
-    int x_resolution,y_resolution;  //Pixels per meter
-    unsigned int ncolors;          //Number of colours
-    unsigned int important_colors;  //Important colours
+    uint32_t header_size;                   //Header size in bytes
+    uint32_t width;                         //Width of the image
+    uint32_t height;                        //Height of the image
+    uint16_t planes;                        //Number of color planes
+    uint16_t bits;                          //Bits per pixel
+    uint32_t compression;                   //Compression type
+    uint32_t image_size;                    //Image size in bytes     
+    uint32_t x_resolution,y_resolution;     //Pixels per meter
+    uint32_t ncolors;                       //Number of colours
+    uint32_t important_colors;              //Important colours
 }bmp_info_header;
 
 
 typedef struct bmp_header{
     uint16_t type;          //Magic identifier
-    uint32_t file_size;     //File size in bytes
     uint16_t reserved1;
     uint16_t reserved2;
     uint32_t offset;        //Offset to image data, bytes
+    uint32_t file_size;     //File size in bytes
+
 }bmp_header;
 
 typedef struct bmp_file{
@@ -46,9 +47,9 @@ void print_bmp_file(bmp_file * bmp_file);
 int ReadUShort(FILE *fptr,short unsigned *n,int swap);
 
 /*
-   Read a possibly byte swapped unsigned integer
+   Read a possibly byte swapped uint32_teger
 */
-int ReadUInt(FILE *fptr,unsigned int *n,int swap);
+int ReadUInt(FILE *fptr,uint32_t *n,int swap);
 
 // Writes the bmp file {file} in the path {filepath}
 void write_bmp_file(bmp_file * file, char * filepath);

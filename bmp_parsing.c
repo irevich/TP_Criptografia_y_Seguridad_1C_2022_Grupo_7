@@ -84,7 +84,12 @@ bmp_file *read_bmp_file(char *filepath)
 
 void write_bmp_file(bmp_file * file, char * filepath){
    FILE *fp = fopen(filepath, "wb");
-   fwrite(file->header, sizeof(bmp_header), 1, fp);
+   fwrite(&(file->header->type), sizeof(uint16_t), 1, fp);
+   fwrite(&(file->header->file_size), sizeof(uint32_t), 1, fp);
+   fwrite(&(file->header->reserved1), sizeof(uint16_t), 1, fp);
+   fwrite(&(file->header->reserved2), sizeof(uint16_t), 1, fp);
+   fwrite(&(file->header->offset), sizeof(uint32_t), 1, fp);
+
    fwrite(file->info_header, sizeof(bmp_info_header), 1, fp);
    fwrite(file->body, sizeof(pixel), file->info_header->width * file->info_header->height, fp);
    fclose(fp);
