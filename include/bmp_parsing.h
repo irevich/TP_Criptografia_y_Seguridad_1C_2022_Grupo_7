@@ -7,6 +7,10 @@
 #define FALSE 0
 #define TRUE 1
 
+typedef struct pixel{
+    uint8_t colors[3]; //Blue,green and red
+}pixel;
+
 typedef struct bmp_info_header{
     unsigned int header_size;   //Header size in bytes
     int width;                  //Width of the image
@@ -22,17 +26,17 @@ typedef struct bmp_info_header{
 
 
 typedef struct bmp_header{
-    unsigned short int type;    //Magic identifier
-    unsigned int file_size;     //File size in bytes
-    unsigned short int reserved1;
-    unsigned short int reserved2;
-    unsigned int offset;        //Offset to image data, bytes
+    uint16_t type;          //Magic identifier
+    uint32_t file_size;     //File size in bytes
+    uint16_t reserved1;
+    uint16_t reserved2;
+    uint32_t offset;        //Offset to image data, bytes
 }bmp_header;
 
 typedef struct bmp_file{
     bmp_header * header;
     bmp_info_header * info_header;
-    uint8_t * body;
+    pixel * body;
 }bmp_file;
 
 bmp_file * read_bmp_file(char * filepath);
@@ -41,10 +45,13 @@ void print_bmp_file(bmp_file * bmp_file);
 
 int ReadUShort(FILE *fptr,short unsigned *n,int swap);
 
-
 /*
    Read a possibly byte swapped unsigned integer
 */
 int ReadUInt(FILE *fptr,unsigned int *n,int swap);
+
+// Writes the bmp file {file} in the path {filepath}
+void write_bmp_file(bmp_file * file, char * filepath);
+
 
 #endif
