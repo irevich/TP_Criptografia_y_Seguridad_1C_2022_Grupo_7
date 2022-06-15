@@ -1,4 +1,5 @@
 #ifndef __BMP_PARSING_H_
+#define __BMP_PARSING_H_
 
 #include <stdio.h>
 #include <stdlib.h>
