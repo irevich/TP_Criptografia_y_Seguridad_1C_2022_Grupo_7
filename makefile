@@ -1,5 +1,5 @@
 CC=gcc
-CCFLAGS = -Wall -g
+CCFLAGS = -Wall -g -lcrypto
 
 SOURCES := $(wildcard *.c)
 OBJECTS := $(SOURCES:%.c=%.o)
