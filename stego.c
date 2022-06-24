@@ -1,17 +1,12 @@
 #include "include/stego.h"
 #include <string.h>
 
-// Hides bit in the least significant bit of the pixel
-uint8_t hide_bit(uint8_t bit, uint8_t byte){
-    if(bit){
-        byte = byte | 0x01;     
-    }
-    else{
-        byte = byte & 0xFE;
-    }
+// Hides bits in the byte, uses a mask that preserves the desired bits
+uint8_t hide_bits(uint8_t bits, uint8_t byte, uint8_t mask){
+    byte = byte & (0xFF - mask); //Resets bits outside mask
+    byte = byte | bits; //Sets bits to desired values
     return byte;
 }
-
 
 uint32_t to_big_endian_32(uint32_t num){
     uint32_t b0,b1,b2,b3;
@@ -35,6 +30,10 @@ typedef struct{
 void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, embedding_t * embedding){
     // Find size of source_file
     FILE * source_file = fopen(source_file_path, "r");
+    if(source_file == NULL){
+        fprintf(stderr, "Error opening source file in embed");
+        exit(-1);
+    }
     fseek(source_file, 0, SEEK_END);
     uint32_t source_file_size = ftell(source_file);
     rewind(source_file);
@@ -108,14 +107,14 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
 
     int bits_placed = 0;
     int pixel_index = 0;
-
+    uint8_t mask = 0x01; //Mask that preserves lowest bit
     //Copy message to hide in output bmp
     for(int i = 0; i < embedding.needed_space; i++){
         for(int j = 0; j < 8 ; j++){
-            uint8_t bit = (embedding.message[i] >> (7-j)) & 0x01; // Get the bit in the least significant bit
+            uint8_t bit = (embedding.message[i] >> (7-j)) & mask; // Get the bit in the least significant bit
             uint8_t byte =  carrier_bmp->body[pixel_index].colors[bits_placed%3]; // Get the byte to hide the bit in
             // uint8_t byte =  carrier_bmp->body[i]; // Get the byte to hide the bit in
-            uint8_t changed_byte = hide_bit(bit, byte); // Hide the bit in the byte
+            uint8_t changed_byte = hide_bits(bit, byte, mask); // Hide the bit in the byte
             embedding.output_file->body[pixel_index].colors[bits_placed%3] = changed_byte; // Update change in output_bmp
             // output_bmp->body[i] = changed_byte; // Update change in output_bmp
 
@@ -296,4 +295,32 @@ FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
     // FILE * output_file = fopen(strcat(output_file_name, extension), "w");
     // fwrite(data, sizeof(uint8_t), sizeof(file_size) + file_size + sizeof(extension), output_file);
     // return output_file;
+}
+
+//---------------------------------------LSB4------------------------------------------
+bmp_file * lsb4_embed(bmp_file * carrier_bmp, char * source_file_path){
+    embedding_t embedding;
+    prepare_embedding(carrier_bmp, source_file_path, &embedding);
+
+    int bits_placed = 0;
+    int pixel_index = 0;
+    uint8_t mask = 0x0F; //Mask that preserves the lower 4 bits
+    //Copy message to hide in output bmp
+    for(int i = 0; i < embedding.needed_space; i++){
+        uint8_t aux_byte = embedding.message[i];
+        for(int j = 0; j < 2 ; j++){
+            uint8_t bits = (aux_byte >> (4-j*4)) & mask; // Get 4 bits, from left to right, into the lower 4 bits
+            uint8_t byte =  carrier_bmp->body[pixel_index].colors[bits_placed%3]; // Get the byte to hide the bit in
+            uint8_t changed_byte = hide_bits(bits, byte, mask); // Hide the 4 bits in the byte
+            embedding.output_file->body[pixel_index].colors[bits_placed%3] = changed_byte; // Update change in output_bmp
+
+            bits_placed++;
+            if(bits_placed%3 == 0){
+                pixel_index++;
+            }
+            aux_byte = embedding.message[i];
+        }        
+    }
+    
+    return embedding.output_file;
 }

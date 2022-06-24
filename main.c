@@ -18,15 +18,15 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    // // Then, we generate the output bmp as result of lsb1 embed method
+    // Then, we generate the output bmp as result of lsb1 embed method
     // bmp_file * output_bmp = lsb1_embed(carrier_bmp,parameters->input_file_path);
     // write_bmp_file(output_bmp, parameters->output_file_path);
-
-    lsb1_extract(carrier_bmp,parameters->output_file_path);
-
-    // // Finally, we free the memory allocated
-    // free(output_bmp);
-    // free(carrier_bmp);
+    
+    bmp_file * output_bmp = lsb4_embed(carrier_bmp, parameters->input_file_path);
+    write_bmp_file(output_bmp, parameters->output_file_path);
+    // Finally, we free the memory allocated
+    free(output_bmp);
+    free(carrier_bmp);
     
     return 0;
 }

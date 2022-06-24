@@ -56,3 +56,4 @@ dkms.conf
 
 # Resource files
 *.bmp
+*.log
