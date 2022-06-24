@@ -24,8 +24,11 @@ int main(int argc, char *argv[]) {
 
     // bmp_file * embed_bmp_from_file = read_bmp_file("embed.bmp");
 
-    // LSB1 EXTRACT
-    lsb1_extract(carrier_bmp,parameters->output_file_path);
+    // // LSB1 EXTRACT
+    // lsb1_extract(carrier_bmp,parameters->output_file_path);
+
+    // LSB4 EXTRACT
+    lsb4_extract(carrier_bmp,parameters->output_file_path);
 
 
     // Then, we generate the output bmp as result of lsb1 embed method
