@@ -1,5 +1,5 @@
 #include "include/stego.h"
-
+#include <string.h>
 
 // Hides bit in the least significant bit of the pixel
 uint8_t hide_bit(uint8_t bit, uint8_t byte){
@@ -129,7 +129,7 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
     return embedding.output_file;
 }
 
-void lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
+FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
 
     int i,j;
     
@@ -147,7 +147,7 @@ void lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
         // if(i==18){
         //     printf("Byte 18\n");
         // }
-        uint8_t current_byte = bmp_body[pixel_index].colors[bits_placed%3];
+        // uint8_t current_byte = bmp_body[pixel_index].colors[bits_placed%3];
         uint8_t bit = (bmp_body[pixel_index].colors[bits_placed%3]) & 0x01; // Get the least significant bit
         // printf("Current LSB in byte %d is %d\n",i,bit);
         file_size = file_size << 1; //Shift the bit to the left
@@ -162,6 +162,88 @@ void lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
     // file_size = to_big_endian_32(file_size);
 
     printf("The file size is %d\n",file_size);
+
+    //Then, we have to read the file bytes
+
+    //Number of bytes to read of the carrier bmp
+    uint32_t number_of_carrier_bytes = file_size * 8;
+
+    //Allocate memory for file bytes
+    uint8_t * file_bytes =  (uint8_t *) malloc(file_size);
+
+    //Read the corresponding bytes of the carrier bmp
+    for(i = 0; i < number_of_carrier_bytes ;i++ ){
+        // if(i==18){
+        //     printf("Byte 18\n");
+        // }
+        // uint8_t current_byte = bmp_body[pixel_index].colors[bits_placed%3];
+        
+        uint8_t bit = (bmp_body[pixel_index].colors[bits_placed%3]) & 0x01; // Get the least significant bit
+       
+        //Shift the bit to the left
+        // printf("Current LSB in byte %d is %d\n",i,bit);
+        file_bytes[i/8] = file_bytes[i/8] << 1; //Shift the bit to the left
+        file_bytes[i/8] = file_bytes[i/8] | bit; //Put the bit inside file_size
+
+        bits_placed++;
+        if(bits_placed%3 == 0){
+            pixel_index++;
+        }
+
+        if(i!=0 && i%8==0){
+            printf("The byte number %d is : %x\n",i/8,file_bytes[-1+i/8]);
+        }
+
+    }
+
+    printf("The byte number %d is : %x\n",file_size,file_bytes[file_size -1]);
+    //
+
+
+    //Then, we read the extension
+    // int BLOCK = 500;
+    // uint8_t * extension = (uint8_t *) malloc(sizeof(uint8_t) * BLOCK);
+    // int finish = 0;
+
+    // int extension_bits = 0;
+
+    // while(!finish){
+        
+    //     //Check if we have space allocated
+    //     if((extension_bits/8) % BLOCK == 0){
+    //         extension = realloc(extension, sizeof(uint8_t) * ((extension_bits/8) + BLOCK)); // Reallocate memory for extension
+    //     }
+        
+    //     uint8_t bit = (bmp_body[pixel_index].colors[bits_placed%3]) & 0x01; // Get the least significant bit
+    //     //mal
+    //     extension[extension_bits/8] = extension[extension_bits/8] << 1; //Shift the bit to the left
+    //     extension[extension_bits/8] = extension[extension_bits/8] | bit; //Put the bit inside file_size
+
+    //     bits_placed++;
+    //     if(bits_placed%3 == 0){
+    //         pixel_index++;
+    //     }
+
+    //     if(extension_bits!=0 && extension_bits%8==0){
+    //         //Check if is \0 to see if we have finished
+    //         if(strcmp((char*)extension[extension_bits/8],"\0")){
+    //             finish = 1;
+    //         }
+    //     }
+    //     extension_bits++;
+    // }
+    // printf("The extension is : %s\n",extension);
+    //  extension = realloc(extension, sizeof(uint8_t) * (extension_bits/8)); // Final memory reallocation
+
+
+    //Then, we create the new file
+     char * extension = ".png";
+    char * output_filepath = (char*) malloc(strlen(output_file_name)+strlen((char*)extension)+1);
+    strcpy(output_filepath,output_file_name);
+    // strcat(output_filepath,(char*)extension); //archivoOculto.png
+    FILE * output_file = fopen(strcat(output_file_name, (char*) extension), "w");
+    fwrite(file_bytes, sizeof(uint8_t), file_size, output_file);
+    return output_file;
 
 
     //-----------VERSION VIEJA-------------------------------

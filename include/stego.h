@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path);
-void  lsb1_extract(bmp_file * carrier_bmp, char * output_file_name);
+FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name);
 
 bmp_file * lsb4_embed(bmp_file * carruer_bmp, char * source_file_path);
 FILE * lsb4_extract(bmp_file * carrier_bmp, char * output_file_name);
