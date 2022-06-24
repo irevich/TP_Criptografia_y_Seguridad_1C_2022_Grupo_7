@@ -1,5 +1,6 @@
 CC=gcc
 CCFLAGS = -Wall -g -lcrypto
+LOGFILE := errors.log
 
 SOURCES := $(wildcard *.c)
 OBJECTS := $(SOURCES:%.c=%.o)
@@ -14,4 +15,4 @@ clean:
 	rm -rvf *.o $(OUTPUT)
 
 run: all
-	./$(OUTPUT) $(PARAMS)
+	./$(OUTPUT) $(PARAMS) 2> $(LOGFILE)
