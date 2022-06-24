@@ -26,7 +26,13 @@ uint32_t to_big_endian_32(uint32_t num){
     return res;
 }
 
-bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
+typedef struct{
+    bmp_file * output_file;
+    uint8_t * message;
+    uint32_t needed_space;
+} embedding_t;
+
+void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, embedding_t * embedding){
     // Find size of source_file
     FILE * source_file = fopen(source_file_path, "r");
     fseek(source_file, 0, SEEK_END);
@@ -49,7 +55,7 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
     // output_bmp->body = (uint8_t *) malloc((sizeof(uint8_t) * (carrier_bmp->info_header->width) * (carrier_bmp->info_header->height) * 3));
 
     // Check if source file can fit in the carrier bmp
-    int needed_space = sizeof(source_file_size) + source_file_size + strlen(extension)+1;
+    uint32_t needed_space = sizeof(source_file_size) + source_file_size + strlen(extension)+1;
 
     int carrier_bmp_body_size = carrier_bmp->info_header->width * carrier_bmp->info_header->height * 3;
     if( carrier_bmp_body_size < needed_space){
@@ -58,15 +64,20 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
     }
 
     // Copy the carrier file body to the output file body
-    memcpy(output_bmp->body,  carrier_bmp->body, carrier_bmp_body_size);
+    if(memcpy(output_bmp->body,  carrier_bmp->body, carrier_bmp_body_size) == NULL){
+        fprintf(stderr, "Failed copying body of carrier bmp into destination");
+        exit(-1);
+    }
 
     // Create data to hide (size|bytes|extension)
-
     uint8_t * message = (uint8_t *) malloc(needed_space);
 
     // Size (Big endian)
     uint32_t source_file_size_big_endian = to_big_endian_32(source_file_size);
-    memcpy(message, &source_file_size_big_endian, sizeof(source_file_size_big_endian));
+    if(memcpy(message, &source_file_size_big_endian, sizeof(source_file_size_big_endian)) == NULL){
+        fprintf(stderr, "Failed copying source file size into message");
+        exit(-1);
+    }
 
     // File bytes
     uint8_t * file_bytes = (uint8_t *) malloc(source_file_size);
@@ -74,22 +85,38 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
         fprintf(stderr, "Cannot read file bytes\n");
         exit(-1);
     }
-    memcpy(message + sizeof(source_file_size), file_bytes, source_file_size);
+
+    if(memcpy(message + sizeof(source_file_size), file_bytes, source_file_size) == NULL){
+        fprintf(stderr, "Failed copying source file content into message");
+        exit(-1);
+    }
 
     // Extension
-    memcpy(message + sizeof(source_file_size) + source_file_size, extension, strlen(extension)+1);
+    if(memcpy(message + sizeof(source_file_size) + source_file_size, extension, strlen(extension)+1) == NULL){
+        fprintf(stderr, "Failed copying source file extension into message");
+        exit(-1);
+    }
+    
+    embedding->message = message;
+    embedding->output_file = output_bmp;
+    embedding->needed_space = needed_space;
+}
+
+bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
+    embedding_t embedding;
+    prepare_embedding(carrier_bmp, source_file_path, &embedding);
 
     int bits_placed = 0;
     int pixel_index = 0;
 
     //Copy message to hide in output bmp
-    for(int i = 0; i < needed_space; i++){
+    for(int i = 0; i < embedding.needed_space; i++){
         for(int j = 0; j < 8 ; j++){
-            uint8_t bit = (message[i] >> (7-j)) & 0x01; // Get the bit in the least significant bit
+            uint8_t bit = (embedding.message[i] >> (7-j)) & 0x01; // Get the bit in the least significant bit
             uint8_t byte =  carrier_bmp->body[pixel_index].colors[bits_placed%3]; // Get the byte to hide the bit in
             // uint8_t byte =  carrier_bmp->body[i]; // Get the byte to hide the bit in
             uint8_t changed_byte = hide_bit(bit, byte); // Hide the bit in the byte
-            output_bmp->body[pixel_index].colors[bits_placed%3] = changed_byte; // Update change in output_bmp
+            embedding.output_file->body[pixel_index].colors[bits_placed%3] = changed_byte; // Update change in output_bmp
             // output_bmp->body[i] = changed_byte; // Update change in output_bmp
 
             bits_placed++;
@@ -99,7 +126,7 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
         }        
     }
     
-    return output_bmp;
+    return embedding.output_file;
 }
 
 FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
@@ -153,5 +180,3 @@ FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
     fwrite(data, sizeof(uint8_t), sizeof(file_size) + file_size + sizeof(extension), output_file);
     return output_file;
 }
-
-
