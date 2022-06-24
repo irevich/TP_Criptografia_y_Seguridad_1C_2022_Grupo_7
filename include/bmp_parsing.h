@@ -12,6 +12,7 @@ typedef struct pixel{
     uint8_t colors[3]; //Blue,green and red
 }pixel;
 
+#pragma pack(push,1)
 typedef struct bmp_info_header{
     uint32_t header_size;                   //Header size in bytes
     uint32_t width;                         //Width of the image
@@ -24,8 +25,9 @@ typedef struct bmp_info_header{
     uint32_t ncolors;                       //Number of colours
     uint32_t important_colors;              //Important colours
 }bmp_info_header;
+#pragma pack(pop)
 
-
+#pragma pack(push,1)
 typedef struct bmp_header{
     uint16_t type;          //Magic identifier
     uint16_t reserved1;
@@ -34,11 +36,14 @@ typedef struct bmp_header{
     uint32_t file_size;     //File size in bytes
 
 }bmp_header;
+#pragma pack(pop)
+
+
 
 typedef struct bmp_file{
     bmp_header * header;
     bmp_info_header * info_header;
-     pixel * body;
+    pixel * body;
     // uint8_t * body;
 }bmp_file;
 

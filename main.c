@@ -8,11 +8,9 @@
 
 int main(int argc, char *argv[]) {
     // Parse the parameters
-    parameters_t * parameters = parse_args(argc, argv);    
-
-    // parameters_t * hola;
+    parameters_t * parameters = parse_args(argc, argv);  
     
-    //Then, we read the bmp header
+    // Then, we read the carrier bmp
     bmp_file * carrier_bmp = read_bmp_file(parameters->carrier_file_path);
 
     if(carrier_bmp==NULL){
@@ -20,20 +18,13 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    // write_bmp_file(carrier_bmp, "copia_carrier.bmp");
-
-    // print_bmp_file(bmp_file);    
-    // write_bmp_file(bmp_file, parameters->output_file_path);
-
-    //lsb1 extract
-    // lsb1_extract(bmp_file,parameters->output_file_path);
-
+    // Then, we generate the output bmp as result of lsb1 embed method
     bmp_file * output_bmp = lsb1_embed(carrier_bmp,parameters->input_file_path);
-
     write_bmp_file(output_bmp, parameters->output_file_path);
 
-
-    // free(output_bmp);
-    // free(carrier_bmp);
+    // Finally, we free the memory allocated
+    free(output_bmp);
+    free(carrier_bmp);
+    
     return 0;
 }

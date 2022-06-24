@@ -15,11 +15,11 @@ bmp_file *read_bmp_file(char *filepath)
    ReadUShort(fp, &(header->type), FALSE);
    fprintf(stderr, "ID is: %d, should be %d\n", header->type, 'M' * 256 + 'B');
    ReadUInt(fp, &(header->file_size), FALSE);
-   fprintf(stderr, "File size is %d bytes\n", header->file_size);
+   // fprintf(stderr, "File size is %d bytes\n", header->file_size);
    ReadUShort(fp, &(header->reserved1), FALSE);
    ReadUShort(fp, &(header->reserved2), FALSE);
    ReadUInt(fp, &(header->offset), FALSE);
-   fprintf(stderr, "Offset to image data is %d bytes\n", header->offset);
+   // fprintf(stderr, "Offset to image data is %d bytes\n", header->offset);
 
    // Allocate memory for infoheader
    bmp_info_header *info_header = ((bmp_info_header *)malloc(sizeof(bmp_info_header)));
@@ -29,14 +29,13 @@ bmp_file *read_bmp_file(char *filepath)
       fprintf(stderr, "Failed to read BMP info header\n");
       exit(-1);
    }
-   fprintf(stderr, "Image size = %d x %d\n", info_header->width, info_header->height);
-   fprintf(stderr, "Number of colour planes is %d\n", info_header->planes);
-   fprintf(stderr, "Bits per pixel is %d\n", info_header->bits);
-   fprintf(stderr, "Compression type is %d\n", info_header->compression);
-   fprintf(stderr, "Number of colours is %d\n", info_header->ncolors);
-   fprintf(stderr, "Number of required colours is %d\n", info_header->important_colors);
+   // fprintf(stderr, "Image size = %d x %d\n", info_header->width, info_header->height);
+   // fprintf(stderr, "Number of colour planes is %d\n", info_header->planes);
+   // fprintf(stderr, "Bits per pixel is %d\n", info_header->bits);
+   // fprintf(stderr, "Compression type is %d\n", info_header->compression);
+   // fprintf(stderr, "Number of colours is %d\n", info_header->ncolors);
+   // fprintf(stderr, "Number of required colours is %d\n", info_header->important_colors);
 
-   //  fread(header,1,sizeof(bmp_header),fp);
 
    // Check if file is a bitmap
    if (header->type != 'M' * 256 + 'B')
