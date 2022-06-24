@@ -38,7 +38,8 @@ typedef struct bmp_header{
 typedef struct bmp_file{
     bmp_header * header;
     bmp_info_header * info_header;
-    pixel * body;
+     pixel * body;
+    // uint8_t * body;
 }bmp_file;
 
 bmp_file * read_bmp_file(char * filepath);

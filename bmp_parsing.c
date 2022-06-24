@@ -52,21 +52,25 @@ bmp_file *read_bmp_file(char *filepath)
 
    pixel *body = (pixel *)malloc(sizeof(pixel) * (info_header->width) * (info_header->height));
 
+   // uint8_t *body = (uint8_t *)malloc(sizeof(uint8_t) * (info_header->width) * (info_header->height) * 3);
+
    int i, j, k;
+   // int body_index = 0;
    for (j = 0; j < info_header->height; j++)
    {
       for (i = 0; i < info_header->width; i++)
       {
-         u_int8_t color;
+         uint8_t color;
          for (k = 0; k < 3; k++)
          {
-            if (fread(&color, sizeof(u_int8_t), 1, fp) != 1)
+            if (fread(&color, sizeof(uint8_t), 1, fp) != 1)
             {
                fprintf(stderr, "Failed to read BMP body\n");
                exit(-1);
             }
 
             body[j * info_header->width + i].colors[k] = color;
+            // body_index++;
          }
       }
    }
@@ -91,6 +95,7 @@ void write_bmp_file(bmp_file * file, char * filepath){
    fwrite(&(file->header->offset), sizeof(uint32_t), 1, fp);
 
    fwrite(file->info_header, sizeof(bmp_info_header), 1, fp);
+   // fwrite(file->body, sizeof(uint8_t), file->info_header->width * file->info_header->height * 3, fp);
    fwrite(file->body, sizeof(pixel), file->info_header->width * file->info_header->height, fp);
    fclose(fp);
 }
