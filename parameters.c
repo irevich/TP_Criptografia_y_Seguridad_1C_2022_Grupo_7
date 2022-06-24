@@ -37,8 +37,8 @@ usage(const char *progname) {
     exit(1);
 }
 
-void 
-parse_args(const int argc, char **argv, struct parameters * parameters) {
+parameters_t * parse_args(const int argc, char **argv) {
+    parameters_t * parameters = (parameters_t *) malloc(sizeof(parameters_t));
     memset(parameters, 0, sizeof(*parameters));
 
     char opt;
@@ -57,8 +57,8 @@ parse_args(const int argc, char **argv, struct parameters * parameters) {
             {"pass", optional_argument, NULL, 'k'},
             {0, 0, 0, 0}
         };
-        const char * short_options = "hvexip:o:s:a:m:k:";
-    while(opt = getopt_long(argc, argv, short_options, long_options, &option_index)){
+        const char * short_options = "hAexip:o:s:a:m:k:";
+    while((opt = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1){
         switch (opt)
         {
         case 'h':
@@ -130,30 +130,24 @@ parse_args(const int argc, char **argv, struct parameters * parameters) {
             exit(1);
               
         default:
-            usage(argv[0]);
+            //printf("En el default\n");
+            //usage(argv[0]);
             break;
         
-        }
-        
-
+        }      
     }
+    return parameters;
 }
 
-static void print_parameters(struct parameters * parameters) {
-    printf("Parameters:\n");
-    printf("\tEmbed: %s\n", parameters->embed ? "true" : "false");
-    printf("\tInput file: %s\n", parameters->input_file_path);
-    printf("\tCarrier file: %s\n", parameters->carrier_file_path);
-    printf("\tOutput file: %s\n", parameters->output_file_path);
-    printf("\tStenography algorithm: %s\n", parameters->stego_algorithm == LSB1 ? "LSB1" : (parameters->stego_algorithm == LSB4 ? "LSB4" : "LSBI"));
-    printf("\tEncryption algorithm: %s\n", parameters->encryption_algorithm == AES128 ? "AES128" : (parameters->encryption_algorithm == AES192 ? "AES192" : (parameters->encryption_algorithm == AES256 ? "AES256" : "DES")));
-    printf("\tEncryption mode: %s\n", parameters->encryption_mode == ECB ? "ECB" : (parameters->encryption_mode == CFB ? "CFB" : (parameters->encryption_mode == OFB ? "OFB" : "CBC")));
-    printf("\tPassword: %s\n", parameters->password);
-}
-
-
-// int main(int argc, char **argv) {
-//     struct parameters parameters;
-//     parse_args(argc, argv, &parameters);
-//     print_parameters(&parameters);
+// Remove comment for debugging tool
+// static void print_parameters(struct parameters * parameters) {
+//     printf("Parameters:\n");
+//     printf("\tEmbed: %s\n", parameters->embed ? "true" : "false");
+//     printf("\tInput file: %s\n", parameters->input_file_path);
+//     printf("\tCarrier file: %s\n", parameters->carrier_file_path);
+//     printf("\tOutput file: %s\n", parameters->output_file_path);
+//     printf("\tStenography algorithm: %s\n", parameters->stego_algorithm == LSB1 ? "LSB1" : (parameters->stego_algorithm == LSB4 ? "LSB4" : "LSBI"));
+//     printf("\tEncryption algorithm: %s\n", parameters->encryption_algorithm == AES128 ? "AES128" : (parameters->encryption_algorithm == AES192 ? "AES192" : (parameters->encryption_algorithm == AES256 ? "AES256" : "DES")));
+//     printf("\tEncryption mode: %s\n", parameters->encryption_mode == ECB ? "ECB" : (parameters->encryption_mode == CFB ? "CFB" : (parameters->encryption_mode == OFB ? "OFB" : "CBC")));
+//     printf("\tPassword: %s\n", parameters->password);
 // }
