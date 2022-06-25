@@ -104,7 +104,6 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
     strcat(extension,token);
     int extension_size = strlen(extension) + 1;
 
-
     //Find source file size
     fseek(source_file, 0, SEEK_END);
     uint32_t source_file_size = ftell(source_file);
@@ -130,68 +129,8 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
         exit(-1);
     }
 
-    // Message is to be encrypted
-    if(password != NULL){
-
-        // Allocate size for file bytes and extension into a buffer
-        int file_bytes_and_extension_size = source_file_size + extension_size;
-        uint8_t * file_bytes_and_extension = malloc(file_bytes_and_extension_size);
-
-        // Copy file bytes onto buffer
-        if(memcpy(file_bytes_and_extension , file_bytes, source_file_size) == NULL){
-            fprintf(stderr, "Failed copying source file content into buffer for encryption");
-            exit(-1);
-        }
-
-        // Copy extension onto buffer
-        if(memcpy(file_bytes_and_extension + source_file_size, extension, extension_size) == NULL){
-            fprintf(stderr, "Failed copying source file extension into buffer for encryption");
-            exit(-1);
-        }
-
-        // Encrypt file bytes and extension in their buffer
-        uint8_t * cyphertext = malloc(file_bytes_and_extension_size + EVP_MAX_BLOCK_LENGTH);
-        uint32_t cyphertext_size;
-        cyphertext_size = encrypt(encryption_algorithm, encryption_mode, file_bytes_and_extension, file_bytes_and_extension_size, password, cyphertext);
-        cyphertext = realloc(cyphertext, cyphertext_size); // Trim buffer size to match the size actually used by encryption
-
-        //Encrypt new size
-        uint32_t cyphertext_size_big_endian = to_big_endian_32(cyphertext_size);
-        uint8_t * encrypted_cyphertext_size = malloc(sizeof(cyphertext_size) + EVP_MAX_BLOCK_LENGTH)  ;
-        uint32_t encrypted_cyphertext_size_size;
-        encrypted_cyphertext_size_size = encrypt(encryption_algorithm, encryption_mode, (uint8_t *) &cyphertext_size_big_endian, sizeof(cyphertext_size_big_endian), password, encrypted_cyphertext_size);
-        encrypted_cyphertext_size = realloc(encrypted_cyphertext_size, encrypted_cyphertext_size_size); // Trim buffer size to match the size actually used by encryption
-
-        // Check if the size of the encrypted cyphertext size fits in the allotted 4 bytes
-        // if(encrypted_cyphertext_size_size != cyphertext_size){
-        //     fprintf(stderr, "cyphertext size = %d, encrypted_cyphertext_size_size = %d\n", cyphertext_size, encrypted_cyphertext_size_size);
-        //     fprintf(stderr, "Encrypted message size doesn't fit in allotted 4 bytes, something went wrong in the encryption for the embedding");
-        //     exit(-1);
-        // }
-
-        uint32_t needed_space = sizeof(cyphertext_size) + cyphertext_size;
-        uint8_t * encrypted_message = malloc(needed_space);
-        
-        // Copy encrypted message size onto encrypted message
-        if(memcpy(encrypted_message, encrypted_cyphertext_size, sizeof(cyphertext_size)) == NULL){
-            fprintf(stderr, "Error copying encrypted file size onto message");
-            exit(-1);
-        }
-
-        // Copy encrypted file bytes and extension onto encrypted message
-        if(memcpy(encrypted_message + sizeof(cyphertext_size), cyphertext, cyphertext_size) == NULL){
-            fprintf(stderr, "Error copying encrypted file and extension onto message");
-            exit(-1);
-        }
-
-        embedding->message = encrypted_message;
-        embedding->output_file = output_bmp;
-        embedding->needed_space = needed_space;
-        return;
-    }
-
     // Check if source file can fit in the carrier bmp
-    uint32_t needed_space = sizeof(source_file_size) + source_file_size + strlen(extension)+1;
+    uint32_t needed_space = sizeof(source_file_size) + source_file_size + extension_size;
 
     if( carrier_bmp_body_size < needed_space){
         fprintf(stderr, "Source file is too big to fit in the carrier bmp\n");
@@ -215,14 +154,45 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
     }
 
     // Copy extension onto message
-    if(memcpy(message + sizeof(source_file_size) + source_file_size, extension, strlen(extension)+1) == NULL){
+    if(memcpy(message + sizeof(source_file_size) + source_file_size, extension, extension_size) == NULL){
         fprintf(stderr, "Failed copying source file extension into message");
         exit(-1);
-    }    
+    }
+
+    if(password != NULL){
+        // Encrypt file bytes and extension in their buffer
+        uint8_t * cyphertext = malloc(needed_space + EVP_MAX_BLOCK_LENGTH);
+        uint32_t cyphertext_size;
+        cyphertext_size = encrypt(encryption_algorithm, encryption_mode, message, needed_space, password, cyphertext);
+        cyphertext = realloc(cyphertext, cyphertext_size); // Trim buffer size to match the size actually used by encryption
+
+        uint32_t cyphertext_size_big_endian = to_big_endian_32(cyphertext_size);
+
+        uint32_t needed_space_encrypted = sizeof(cyphertext_size_big_endian) + cyphertext_size;
+        uint8_t * encrypted_message = malloc(needed_space_encrypted);
+        
+        // Copy encrypted message size onto encrypted message
+        if(memcpy(encrypted_message, &cyphertext_size_big_endian, sizeof(cyphertext_size_big_endian)) == NULL){
+            fprintf(stderr, "Error copying encrypted file size onto message");
+            exit(-1);
+        }
+
+        // Copy encrypted file bytes and extension onto encrypted message
+        if(memcpy(encrypted_message + sizeof(cyphertext_size_big_endian), cyphertext, cyphertext_size) == NULL){
+            fprintf(stderr, "Error copying cyphertext onto message");
+            exit(-1);
+        }
+
+        embedding->message = encrypted_message;
+        embedding->output_file = output_bmp;
+        embedding->needed_space = needed_space_encrypted;
+    }
+    else{
+        embedding->message = message;
+        embedding->output_file = output_bmp;
+        embedding->needed_space = needed_space;
+    }
     
-    embedding->message = message;
-    embedding->output_file = output_bmp;
-    embedding->needed_space = needed_space;
 }
 
 //---------------------------------------LSB1------------------------------------------
