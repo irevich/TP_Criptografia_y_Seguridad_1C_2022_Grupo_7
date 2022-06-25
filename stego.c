@@ -454,3 +454,146 @@ bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
 
     return embedding.output_file;
 }
+
+
+FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
+
+    int i;
+    
+    int bits_placed = 0;
+    int pixel_index = 0;
+    uint8_t mask = 0x01; //Mask that preserves lowest bit
+
+    //First, we get the pointer to the carrier_bmp body
+    pixel * bmp_body = carrier_bmp->body;
+
+    //Initialize structure to save pattern info
+    pattern_t patterns[4];
+
+    //Read first 4 bytes to get pattern info
+    for(int i = 0; i < 4; i++){
+        uint8_t bit = (bmp_body[pixel_index].colors[bits_placed%3]) & mask; // Get the least significant bit
+        patterns[i].swap = bit;
+
+        bits_placed++;
+        if(bits_placed%3 == 0){
+            pixel_index++;
+        } 
+    }
+
+    fprintf(stderr, "Pattern 00 - Swap: %u\n", patterns[0].swap);
+    fprintf(stderr, "Pattern 01 - Swap: %u\n", patterns[1].swap);
+    fprintf(stderr, "Pattern 10 - Swap: %u\n", patterns[2].swap);
+    fprintf(stderr, "Pattern 11 - Swap: %u\n", patterns[3].swap);
+
+
+    //Then, we create a uint32_t variable to save the file size
+    uint32_t file_size = 0;
+
+    //Then, we read the first 32 bytes of the carrier_bmp body to get the file size
+    for(i = 0; i < 32 ;i++ ){
+        uint8_t byte = (bmp_body[pixel_index].colors[bits_placed%3]);
+        uint8_t bit = byte & mask; // Get the least significant bit
+        uint8_t pattern = (byte & 0x06) >> 1;
+
+        if(patterns[pattern].swap){
+            bit = (~bit) & mask; //Invert the bit if needed
+        }
+        
+        file_size = file_size << 1; //Shift the bit to the left
+        file_size = file_size | bit; //Put the bit inside file_size
+
+        bits_placed++;
+        if(bits_placed%3 == 0){
+            pixel_index++;
+        } 
+    }
+
+    // printf("The file size is %d\n",file_size);
+
+    //Then, we have to read the file bytes
+
+    //Number of bytes to read of the carrier bmp
+    uint32_t number_of_carrier_bytes = file_size * 8;
+
+    //Allocate memory for file bytes
+    uint8_t * file_bytes =  (uint8_t *) malloc(file_size);
+
+    //Read the corresponding bytes of the carrier bmp
+    for(i = 0; i < number_of_carrier_bytes ;i++ ){
+        uint8_t byte = (bmp_body[pixel_index].colors[bits_placed%3]);
+        uint8_t bit = byte & mask; // Get the least significant bit
+        uint8_t pattern = (byte & 0x06) >> 1;
+
+        if(patterns[pattern].swap){
+            bit = (~bit) & mask; //Invert the bit if needed
+        }
+       
+        //Shift the bit to the left
+        // printf("Current LSB in byte %d is %d\n",i,bit);
+        file_bytes[i/8] = file_bytes[i/8] << 1; //Shift the bit to the left
+        file_bytes[i/8] = file_bytes[i/8] | bit; //Put the bit inside file_size
+
+        bits_placed++;
+        if(bits_placed%3 == 0){
+            pixel_index++;
+        }
+
+        // if(i!=0 && i%8==0){
+        //     printf("The byte number %d is : %x\n",i/8,file_bytes[-1+i/8]);
+        // }
+
+    }
+
+    // printf("The byte number %d is : %x\n",file_size,file_bytes[file_size -1]);
+
+    //Then, we read the extension
+    int BLOCK = 500;
+    uint8_t * extension = (uint8_t *) malloc(sizeof(uint8_t) * BLOCK);
+    int finish = 0;
+
+    int extension_bits = 0;
+
+    while(!finish){
+        
+        //Check if we have space allocated
+        if((extension_bits/8) % BLOCK == 0){
+            extension = realloc(extension, sizeof(uint8_t) * ((extension_bits/8) + BLOCK)); // Reallocate memory for extension
+        }
+        
+        uint8_t byte = (bmp_body[pixel_index].colors[bits_placed%3]);
+        uint8_t bit = byte & mask; // Get the least significant bit
+        uint8_t pattern = (byte & 0x06) >> 1;
+
+        if(patterns[pattern].swap){
+            bit = (~bit) & mask; //Invert the bit if needed
+        }
+
+        extension[extension_bits/8] = extension[extension_bits/8] << 1; //Shift the bit to the left
+        extension[extension_bits/8] = extension[extension_bits/8] | bit; //Put the bit inside file_size
+
+        bits_placed++;
+        if(bits_placed%3 == 0){
+            pixel_index++;
+        }
+
+        if(extension_bits!=0 && extension_bits%8==0){
+            //Check if is \0 to see if we have finished
+            if(extension[extension_bits/8]==0){
+                finish = 1;
+            }
+        }
+        extension_bits++;
+    }
+
+    extension = realloc(extension, sizeof(uint8_t) * (extension_bits/8)); // Final memory reallocation
+
+
+    //Then, we create the new file
+    char * output_filepath = (char*) malloc(strlen(output_file_name)+strlen((char*)extension)+1);
+    strcpy(output_filepath,output_file_name);
+    FILE * output_file = fopen(strcat(output_file_name, (char*) extension), "w");
+    fwrite(file_bytes, sizeof(uint8_t), file_size, output_file);
+    return output_file;
+
+}
