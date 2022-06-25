@@ -2,8 +2,8 @@
 
 // Hides bits in the byte, uses a mask that preserves the desired bits
 uint8_t hide_bits(uint8_t bits, uint8_t byte, uint8_t mask){
-    byte = byte & (0xFF - mask); //Resets bits outside mask
-    byte = byte | bits; //Sets bits to desired values
+    byte = byte & (~mask); //Resets bits inside mask
+    byte = byte | bits; //Sets bits to desired values, assuming mask is sufficient coverage
     return byte;
 }
 
@@ -113,10 +113,9 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
         for(int j = 0; j < 8 ; j++){
             uint8_t bit = (embedding.message[i] >> (7-j)) & mask; // Get the bit in the least significant bit
             uint8_t byte =  carrier_bmp->body[pixel_index].colors[bits_placed%3]; // Get the byte to hide the bit in
-            // uint8_t byte =  carrier_bmp->body[i]; // Get the byte to hide the bit in
+
             uint8_t changed_byte = hide_bits(bit, byte, mask); // Hide the bit in the byte
             embedding.output_file->body[pixel_index].colors[bits_placed%3] = changed_byte; // Update change in output_bmp
-            // output_bmp->body[i] = changed_byte; // Update change in output_bmp
 
             bits_placed++;
             if(bits_placed%3 == 0){
@@ -388,30 +387,38 @@ bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
     int byte_counter = 0;
     int pixel_index = 0;
     uint8_t mask = 0x01; //Mask that preserves lowest bit
+  
+
     //Copy message to hide in output bmp
     while(byte_counter < embedding.needed_space+4){
-        //Skip 4 bytes to save space for pattern swaps back into the carrier        
-        if( byte_counter >= 4){
+        //Skip 4 bytes to save space for pattern swaps back into the carrier    
+        if(byte_counter < 4){
+            byte_counter++;
+            if(byte_counter%3 == 0){
+                pixel_index++;
+            }
+        }    
+        else{
+            uint8_t message_byte = embedding.message[byte_counter-4];
             for(int j = 0; j < 8 ; j++){
-                uint8_t bit = (embedding.message[byte_counter-4] >> (7-j)) & mask; // Get the bit in the least significant bit
+                uint8_t bit = (message_byte >> (7-j)) & mask; // Get the bit in the least significant bit
                 uint8_t byte =  carrier_bmp->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
                 uint8_t pattern = (byte & 0x06) >> 1; //Extract 2nd and 3rd least significant bits for pattern
                 
                 patterns[pattern].total_count++;
-                //Increase counter if least significant bit was changed
-                if(bit != (byte & mask)){ 
+                //Increase counter if least significant bit was swapped
+                if(bit == ((~byte) & mask)){
                     patterns[pattern].changed_count++;
                 }
 
-                uint8_t changed_byte = hide_bits(bit, byte, mask); // Hide the bit in the byte
-                embedding.output_file->body[pixel_index].colors[byte_counter%3] = changed_byte; // Update change in output_bmp
+                byte_counter++;
+                if(byte_counter%3 == 0){
+                    pixel_index++;
+                }
             }
         }
-        byte_counter++;
-        if(byte_counter%3 == 0){
-            pixel_index++;
-        }
-    }
+    } 
+
 
     write_bmp_file(embedding.output_file, "prueba.bmp");
 
@@ -425,32 +432,44 @@ bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
     fprintf(stderr, "Pattern 01 - Changed: %u Total: %u Swap: %u\n", patterns[1].changed_count, patterns[1].total_count, patterns[1].swap);
     fprintf(stderr, "Pattern 10 - Changed: %u Total: %u Swap: %u\n", patterns[2].changed_count, patterns[2].total_count, patterns[2].swap);
     fprintf(stderr, "Pattern 11 - Changed: %u Total: %u Swap: %u\n", patterns[3].changed_count, patterns[3].total_count, patterns[3].swap);
-
+    
     //Swap the hidden bit in bytes that require it in the output file
     byte_counter = 0;
     pixel_index = 0;
-    while(byte_counter < embedding.needed_space + 4){
+    for(int i = 0; i < embedding.needed_space + 4; i++){
         //Place the code for which patterns need swapping
         if(byte_counter < 4){ 
-            uint8_t byte = embedding.output_file->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
+            uint8_t byte = carrier_bmp->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
             uint8_t changed_byte = hide_bits(patterns[byte_counter].swap, byte, mask); // Hide the bit in the byte
             embedding.output_file->body[pixel_index].colors[byte_counter%3] = changed_byte;
+            
+            byte_counter++;
+            if(byte_counter%3 == 0){
+                pixel_index++;
+            }
         }
         else{
-            uint8_t byte =  embedding.output_file->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
-            uint8_t pattern = (byte & 0x06) >> 1;
-        
-            //Invert least bit if pattern requires swap
-            if(patterns[pattern].swap){ 
-                uint8_t changed_byte = hide_bits(!(byte & mask), byte, mask); // Invert the bit in the byte
+            for(int j = 0; j < 8 ; j++){
+                uint8_t bit = (embedding.message[i-4] >> (7-j)) & mask; // Get the bit in the least significant bit
+                uint8_t byte =  carrier_bmp->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
+                uint8_t pattern = (byte & 0x06) >> 1; //Extract 2nd and 3rd least significant bits for pattern
+                
+                //Invert least bit if pattern requires swap
+                if(patterns[pattern].swap){ 
+                    bit = (~bit) & mask;
+                }
+
+                uint8_t changed_byte = hide_bits(bit, byte, mask); // Hide the bit in the byte
                 embedding.output_file->body[pixel_index].colors[byte_counter%3] = changed_byte; // Update change in output_bmp
-            }          
-        }
-        byte_counter++;
-        if(byte_counter%3 == 0){
-            pixel_index++;
-        }
+                
+                byte_counter++;
+                if(byte_counter%3 == 0){
+                    pixel_index++;
+                }
+            }   
+        }        
     }
+
 
     return embedding.output_file;
 }
@@ -481,13 +500,6 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
         } 
     }
 
-    fprintf(stderr, "Pattern 00 - Swap: %u\n", patterns[0].swap);
-    fprintf(stderr, "Pattern 01 - Swap: %u\n", patterns[1].swap);
-    fprintf(stderr, "Pattern 10 - Swap: %u\n", patterns[2].swap);
-    fprintf(stderr, "Pattern 11 - Swap: %u\n", patterns[3].swap);
-
-
-    //Then, we create a uint32_t variable to save the file size
     uint32_t file_size = 0;
 
     //Then, we read the first 32 bytes of the carrier_bmp body to get the file size
@@ -509,10 +521,9 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
         } 
     }
 
-    // printf("The file size is %d\n",file_size);
+    fprintf(stderr, "Payload size: %d\n", file_size);
 
     //Then, we have to read the file bytes
-
     //Number of bytes to read of the carrier bmp
     uint32_t number_of_carrier_bytes = file_size * 8;
 
@@ -529,8 +540,6 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
             bit = (~bit) & mask; //Invert the bit if needed
         }
        
-        //Shift the bit to the left
-        // printf("Current LSB in byte %d is %d\n",i,bit);
         file_bytes[i/8] = file_bytes[i/8] << 1; //Shift the bit to the left
         file_bytes[i/8] = file_bytes[i/8] | bit; //Put the bit inside file_size
 
@@ -538,14 +547,7 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
         if(bits_placed%3 == 0){
             pixel_index++;
         }
-
-        // if(i!=0 && i%8==0){
-        //     printf("The byte number %d is : %x\n",i/8,file_bytes[-1+i/8]);
-        // }
-
     }
-
-    // printf("The byte number %d is : %x\n",file_size,file_bytes[file_size -1]);
 
     //Then, we read the extension
     int BLOCK = 500;
@@ -587,7 +589,6 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
     }
 
     extension = realloc(extension, sizeof(uint8_t) * (extension_bits/8)); // Final memory reallocation
-
 
     //Then, we create the new file
     char * output_filepath = (char*) malloc(strlen(output_file_name)+strlen((char*)extension)+1);
