@@ -163,10 +163,11 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
         encrypted_cyphertext_size = realloc(encrypted_cyphertext_size, encrypted_cyphertext_size_size); // Trim buffer size to match the size actually used by encryption
 
         // Check if the size of the encrypted cyphertext size fits in the allotted 4 bytes
-        if(encrypted_cyphertext_size_size != sizeof(cyphertext_size)){
-            fprintf(stderr, "Encrypted message size doesn't fit in allotted 4 bytes, something went wrong in the encryption for the embedding");
-            exit(-1);
-        }
+        // if(encrypted_cyphertext_size_size != cyphertext_size){
+        //     fprintf(stderr, "cyphertext size = %d, encrypted_cyphertext_size_size = %d\n", cyphertext_size, encrypted_cyphertext_size_size);
+        //     fprintf(stderr, "Encrypted message size doesn't fit in allotted 4 bytes, something went wrong in the encryption for the embedding");
+        //     exit(-1);
+        // }
 
         uint32_t needed_space = sizeof(cyphertext_size) + cyphertext_size;
         uint8_t * encrypted_message = malloc(needed_space);
