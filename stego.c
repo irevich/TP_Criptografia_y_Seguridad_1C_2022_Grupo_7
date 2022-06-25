@@ -597,3 +597,11 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
     return output_file;
 
 }
+const bmp_file * (*embed_functions[3])(bmp_file * carrier_bmp, char * input_file_path)= {lsb1_embed,lsb4_embed,lsbi_embed};
+const FILE * (*extract_functions[3])(bmp_file * carrier_bmp, char * output_file_name)= {lsb1_extract,lsb4_extract,lsbi_extract};
+bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path){
+    return (*embed_functions[stego])(carrier_bmp,input_file_path);
+}
+FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name){
+    return (*extract_functions[stego])(carrier_bmp,output_file_name);
+}

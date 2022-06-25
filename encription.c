@@ -6,7 +6,7 @@ const EVP_CIPHER * (*encryption_algorithm_functions[16])(void)= {EVP_aes_128_ecb
 
 const char* encryption_cyphernames[16] = {"aes-128-ecb","aes-128-cfb","aes-128-ofb","aes-128-cbc","aes-192-ecb","aes-192-cfb","aes-192-ofb","aes-192-cbc","aes-256-ecb","aes-256-cfb","aes-256-ofb","aes-256-cbc","des-ecb","des-cfb","des-ofb","des-cbc"};
 
-int encrypt(char algorithm,char mode, unsigned char *plaintext, int plaintext_len, unsigned char *password, unsigned char *ciphertext) {
+int encrypt(encryption_algorithm_t algorithm,encryption_mode_t mode, unsigned char *plaintext, int plaintext_len, unsigned char *password, unsigned char *ciphertext) {
     int option_index = algorithm*4 + mode;
     unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
     EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
@@ -56,7 +56,7 @@ int encrypt(char algorithm,char mode, unsigned char *plaintext, int plaintext_le
     return ciphertext_len;
 }
 
-int decrypt(char algorithm,char mode,unsigned char *ciphertext, int ciphertext_len, unsigned char *password, unsigned char *plaintext) {
+int decrypt(encryption_algorithm_t algorithm,encryption_mode_t mode,unsigned char *ciphertext, int ciphertext_len, unsigned char *password, unsigned char *plaintext) {
         int option_index = algorithm*4 + mode;
             unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
     EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
@@ -124,7 +124,7 @@ int decrypt(char algorithm,char mode,unsigned char *ciphertext, int ciphertext_l
 //     unsigned char ciphertext[128];
 
 //     /* Buffer for the decrypted text */
-//     unsigned char decryptedtext[128];
+//     unsigned char decryptedtext[128+EVP_MAX_BLOCK_LENGTH];
 
 //     int decryptedtext_len, ciphertext_len;
 

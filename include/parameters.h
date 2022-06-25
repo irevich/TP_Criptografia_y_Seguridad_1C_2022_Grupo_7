@@ -13,25 +13,25 @@ typedef struct parameters{
     char * password;
 } parameters_t;
 
-enum stego_algorithm {
+typedef enum stego_algorithm {
     LSB1,
     LSB4,
     LSBI
-};
+}stego_algorithm_t;
 
-enum encryption_algorithm {
+typedef enum encryption_algorithm {
     AES128,
     AES192,
     AES256,
     DES
-};
+} encryption_algorithm_t;
 
-enum encryption_mode {
+typedef enum encryption_mode {
     ECB,
     CFB,
     OFB,
     CBC
-};
+} encryption_mode_t;
 
 /**
  * Interpreta la linea de comandos (argc, argv) llenando
