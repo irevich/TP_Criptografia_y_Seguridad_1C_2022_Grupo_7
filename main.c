@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     // bmp_file * output_bmp = lsb1_embed(carrier_bmp,parameters->input_file_path);
     // write_bmp_file(output_bmp, parameters->output_file_path);
     
-    bmp_file * output_bmp = lsb4_embed(carrier_bmp, parameters->input_file_path);
+    bmp_file * output_bmp = lsbi_embed(carrier_bmp, parameters->input_file_path);
     write_bmp_file(output_bmp, parameters->output_file_path);
     // Finally, we free the memory allocated
     free(output_bmp);

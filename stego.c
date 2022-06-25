@@ -130,7 +130,7 @@ bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
 
 FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
 
-    int i,j;
+    int i;
     
     int bits_placed = 0;
     int pixel_index = 0;
@@ -322,5 +322,96 @@ bmp_file * lsb4_embed(bmp_file * carrier_bmp, char * source_file_path){
         }        
     }
     
+    return embedding.output_file;
+}
+
+typedef struct{
+    uint8_t pattern;
+    uint32_t changed_count;
+    uint32_t total_count;
+    uint8_t swap;
+} pattern_t;
+
+//---------------------------------------LSBI------------------------------------------
+bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
+    embedding_t embedding;
+    prepare_embedding(carrier_bmp, source_file_path, &embedding);
+
+    // Preprare patterns
+    pattern_t patterns[4];    
+    for(uint8_t i = 0; i < 4; i++){
+        patterns[i].pattern = i;
+        patterns[i].changed_count = 0;
+        patterns[i].total_count = 0;
+        patterns[i].swap = FALSE;
+    }
+
+    int byte_counter = 0;
+    int pixel_index = 0;
+    uint8_t mask = 0x01; //Mask that preserves lowest bit
+    //Copy message to hide in output bmp
+    while(byte_counter < embedding.needed_space+4){
+        //Skip 4 bytes to save space for pattern swaps back into the carrier        
+        if( byte_counter >= 4){
+            for(int j = 0; j < 8 ; j++){
+                uint8_t bit = (embedding.message[byte_counter-4] >> (7-j)) & mask; // Get the bit in the least significant bit
+                uint8_t byte =  carrier_bmp->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
+                uint8_t pattern = (byte & 0x06) >> 1; //Extract 2nd and 3rd least significant bits for pattern
+                
+                patterns[pattern].total_count++;
+                //Increase counter if least significant bit was changed
+                if(bit != (byte & mask)){ 
+                    patterns[pattern].changed_count++;
+                }
+
+                uint8_t changed_byte = hide_bits(bit, byte, mask); // Hide the bit in the byte
+                embedding.output_file->body[pixel_index].colors[byte_counter%3] = changed_byte; // Update change in output_bmp
+            }
+        }
+        byte_counter++;
+        if(byte_counter%3 == 0){
+            pixel_index++;
+        }
+    }
+
+    write_bmp_file(embedding.output_file, "prueba.bmp");
+
+
+    for(int i=0; i<4; i++){
+        if(patterns[i].changed_count > patterns[i].total_count/2)
+            patterns[i].swap = TRUE;
+    }
+
+    fprintf(stderr, "Pattern 00 - Changed: %u Total: %u Swap: %u\n", patterns[0].changed_count, patterns[0].total_count, patterns[0].swap);
+    fprintf(stderr, "Pattern 01 - Changed: %u Total: %u Swap: %u\n", patterns[1].changed_count, patterns[1].total_count, patterns[1].swap);
+    fprintf(stderr, "Pattern 10 - Changed: %u Total: %u Swap: %u\n", patterns[2].changed_count, patterns[2].total_count, patterns[2].swap);
+    fprintf(stderr, "Pattern 11 - Changed: %u Total: %u Swap: %u\n", patterns[3].changed_count, patterns[3].total_count, patterns[3].swap);
+
+    //Swap the hidden bit in bytes that require it in the output file
+    byte_counter = 0;
+    pixel_index = 0;
+    while(byte_counter < embedding.needed_space + 4){
+        //Place the code for which patterns need swapping
+        if(byte_counter < 4){ 
+            uint8_t byte = embedding.output_file->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
+            uint8_t changed_byte = hide_bits(patterns[byte_counter].swap, byte, mask); // Hide the bit in the byte
+            embedding.output_file->body[pixel_index].colors[byte_counter%3] = changed_byte;
+        }
+        else{
+            uint8_t byte =  embedding.output_file->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
+            uint8_t pattern = (byte & 0x06) >> 1;
+        
+            //Invert least bit if pattern requires swap
+            if(patterns[pattern].swap){ 
+                uint8_t changed_byte = hide_bits(!(byte & mask), byte, mask); // Invert the bit in the byte
+                embedding.output_file->body[pixel_index].colors[byte_counter%3] = changed_byte; // Update change in output_bmp
+            }          
+        }
+        byte_counter++;
+        if(byte_counter%3 == 0){
+            pixel_index++;
+        }
+    }
+
     return embedding.output_file;
 }
