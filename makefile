@@ -6,8 +6,8 @@ SOURCES := $(wildcard *.c)
 OBJECTS := $(SOURCES:%.c=%.o)
 
 OUTPUT := stegobmp.out
-# PARAMS := --embed --in resources/respuesta.png -p resources/lado.bmp --out ladoModificado.bmp --steg LSB1
-PARAMS := --extract -p ./resources/ladoLSB1aes192cbc.bmp --out archivoOculto --steg LSB1 -a AES192 -m CBC -k "escondite"
+PARAMS := --embed --in resources/respuesta.png -p resources/lado.bmp --out ladoModificado.bmp --steg LSBI
+# PARAMS := --extract -p ./resources/ladoLSB1aes192cbc.bmp --out archivoOculto --steg LSB1 -a AES192 -m CBC -k "escondite"
 # PARAMS := --extract -p ./resources/ladoLSB1.bmp --out archivoOculto --steg LSB1
 all:
 	${CC} $(SOURCES) $(CCFLAGS) -o $(OUTPUT)
