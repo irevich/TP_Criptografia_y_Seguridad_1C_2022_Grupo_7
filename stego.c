@@ -555,7 +555,7 @@ FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
        
         //Shift the bit to the left
         // printf("Current LSB in byte %d is %d\n",i,bit);
-        encrypted_file_bytes[i/2] = encrypted_file_bytes[i/2] << 1; //Shift the bits to the left
+        encrypted_file_bytes[i/2] = encrypted_file_bytes[i/2] << 4; //Shift the bits to the left
         encrypted_file_bytes[i/2] = encrypted_file_bytes[i/2] | bits; //Put the bits inside encrypted_file_bytes
 
         bits_placed++;
