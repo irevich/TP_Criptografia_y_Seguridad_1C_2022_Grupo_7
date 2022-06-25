@@ -18,13 +18,13 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
     if(parameters->embed){
-        bmp_file * embed_bmp = embed(parameters->stego_algorithm,carrier_bmp,parameters->input_file_path,parameters->encryption_algorithm,parameters->encryption_mode,parameters->password);
+        embed(parameters->stego_algorithm,carrier_bmp,parameters->input_file_path,parameters->encryption_algorithm,parameters->encryption_mode,parameters->password);
     }else{
         extract(parameters->stego_algorithm,carrier_bmp,parameters->output_file_path,parameters->encryption_algorithm,parameters->encryption_mode,parameters->password);
     }
 
+
     // Finally, we free the memory allocated
-    //free(embed_bmp);
     free(carrier_bmp);
     
     return 0;

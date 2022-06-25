@@ -11,7 +11,7 @@ int encrypt(encryption_algorithm_t algorithm,encryption_mode_t mode, unsigned ch
     unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
     EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
         (unsigned char *) password,
-        strlen(password), 1, key, iv);
+        strlen((char *) password), 1, key, iv);
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -61,7 +61,7 @@ int decrypt(encryption_algorithm_t algorithm,encryption_mode_t mode,unsigned cha
             unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
     EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
         (unsigned char *) password,
-        strlen(password), 1, key, iv);
+        strlen((char *)password), 1, key, iv);
     EVP_CIPHER_CTX *ctx;
 
     int len;

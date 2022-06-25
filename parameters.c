@@ -21,26 +21,36 @@ usage(const char *progname) {
         "Usage: %s [OPTION]...\n"
         "\n"
         "   -h                                  Prints help and exits.\n"
-        "   -v                                  Prints version and exits.\n"
+        "   -A                                  Prints this project's magnificent authors.\n"
         "   -embed                              Indicates that information will be hidden\n"
         "   -extract                            Indicates that information will be extracted\n"
         "   -in file                            File to be hidden through stenography\n"
         "   -p bitmapfile                       File to carry the hidden information\n"
         "   -out bitmapfile                     Bitmap file to be written with the hidden information\n"
         "   -steg <LSB1 | LSB4 | LSBI>          Stenography method to use\n"
-        "   -a <aes128 | aes192 | aes256 | des> Encryption method to use\n"
-        "   -m <ecb | cfb | ofb | cbc>          Encryption mode to use\n"
-        "   -pass <password>                    Password to use\n"
+        "   -a <AES128 | AES192 | AES256 | DES> Encryption method to use\n"
+        "   -m <ECB | CFB | OFB | CBC>          Encryption mode to use\n"
+        "   --pass <password>                   Password to use\n"
 
         "\n",
         progname);
     exit(1);
 }
 
+void set_defaults(parameters_t * parameters){
+    parameters->encryption_algorithm = -1;
+    parameters->encryption_mode = -1;
+    parameters->password = NULL;
+}
+
 parameters_t * parse_args(const int argc, char **argv) {
     parameters_t * parameters = (parameters_t *) malloc(sizeof(parameters_t));
     memset(parameters, 0, sizeof(*parameters));
 
+    // Set default parameters
+    set_defaults(parameters);
+
+    // Configure parameter options
     char opt;
     int option_index = 0;
         static struct option long_options[] = {
@@ -52,12 +62,14 @@ parameters_t * parse_args(const int argc, char **argv) {
             {"p", required_argument, NULL, 'p'},
             {"out", required_argument, NULL, 'o'},
             {"steg", required_argument, NULL, 's'},
-            {"a", optional_argument, NULL, 'a'},
-            {"m", optional_argument, NULL, 'm'},
-            {"pass", optional_argument, NULL, 'k'},
+            {"a", required_argument, NULL, 'a'},
+            {"m", required_argument, NULL, 'm'},
+            {"pass", required_argument, NULL, 'k'},
             {0, 0, 0, 0}
         };
         const char * short_options = "hAexip:o:s:a:m:k:";
+
+    // Read options
     while((opt = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1){
         switch (opt)
         {
@@ -104,8 +116,7 @@ parameters_t * parse_args(const int argc, char **argv) {
             } else if(strcmp(optarg, "DES") == 0) {
                 parameters->encryption_algorithm = DES;
             } else {
-                fprintf(stderr, "Invalid encryption algorithm\n");
-                exit(1);
+                fprintf(stderr, "Invalid encryption algorithm, using default\n");
             }
             break;  
         case 'm':
@@ -118,12 +129,11 @@ parameters_t * parse_args(const int argc, char **argv) {
             } else if(strcmp(optarg, "CBC") == 0) {
                 parameters->encryption_mode = CBC;
             } else {
-                fprintf(stderr, "Invalid encryption mode\n");
-                exit(1);
+                fprintf(stderr, "Invalid encryption mode, using default\n");
             }
             break;
         case 'k':
-            parameters->password = optarg;
+            parameters->password = (uint8_t *)optarg;
             break;
         case '?':
             fprintf(stderr, "Invalid option\n");
@@ -135,6 +145,15 @@ parameters_t * parse_args(const int argc, char **argv) {
             break;
         
         }      
+    }
+
+    // Load defaults for encryption
+    if(parameters->password != NULL){
+        if(parameters->encryption_algorithm == -1)
+            parameters->encryption_algorithm = AES128;
+        
+        if(parameters->encryption_mode == -1)
+            parameters->encryption_mode = CBC;
     }
     return parameters;
 }

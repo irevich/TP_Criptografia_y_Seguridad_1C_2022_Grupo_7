@@ -88,17 +88,13 @@ FILE * get_file_from_decryption(uint8_t * decrypted_text, char * output_file_nam
     return output_file;
 }
 
-void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, embedding_t * embedding){
+void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password, embedding_t * embedding){
     // Find size of source_file
     FILE * source_file = fopen(source_file_path, "r");
     if(source_file == NULL){
         fprintf(stderr, "Error opening source file in embed");
         exit(-1);
     }
-    fseek(source_file, 0, SEEK_END);
-    uint32_t source_file_size = ftell(source_file);
-    rewind(source_file);
-
     // Find extension of source_file
     char * token = strtok(source_file_path, ".");
     token = strtok(NULL, ".");
@@ -106,22 +102,27 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, embeddin
     char * extension = (char*) malloc(strlen(dot)+strlen(token)+1);
     strcpy(extension,dot);
     strcat(extension,token);
+    int extension_size = strlen(extension) + 1;
+
+
+    //Find source file size
+    fseek(source_file, 0, SEEK_END);
+    uint32_t source_file_size = ftell(source_file);
+    rewind(source_file);    
+
+    // Read file bytes
+    uint8_t * file_bytes = (uint8_t *) malloc(source_file_size);
+    if (fread(file_bytes, source_file_size, 1, source_file) != 1){
+        fprintf(stderr, "Cannot read file bytes\n");
+        exit(-1);
+    }
 
     //Allocate memory for output bmp
     bmp_file * output_bmp = (bmp_file *) malloc((sizeof(bmp_file)));
     output_bmp->header = carrier_bmp->header;
     output_bmp->info_header = carrier_bmp->info_header;
-    output_bmp->body = (pixel *) malloc((sizeof(pixel) * (carrier_bmp->info_header->width) * (carrier_bmp->info_header->height)));
-    // output_bmp->body = (uint8_t *) malloc((sizeof(uint8_t) * (carrier_bmp->info_header->width) * (carrier_bmp->info_header->height) * 3));
-
-    // Check if source file can fit in the carrier bmp
-    uint32_t needed_space = sizeof(source_file_size) + source_file_size + strlen(extension)+1;
-
-    int carrier_bmp_body_size = carrier_bmp->info_header->width * carrier_bmp->info_header->height * 3;
-    if( carrier_bmp_body_size < needed_space){
-        fprintf(stderr, "Source file is too big to fit in the carrier bmp\n");
-        exit(-1);
-    }
+    int carrier_bmp_body_size = (sizeof(pixel) * (carrier_bmp->info_header->width) * (carrier_bmp->info_header->height));
+    output_bmp->body = (pixel *) malloc(carrier_bmp_body_size);
 
     // Copy the carrier file body to the output file body
     if(memcpy(output_bmp->body,  carrier_bmp->body, carrier_bmp_body_size) == NULL){
@@ -129,33 +130,94 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, embeddin
         exit(-1);
     }
 
+    // Message is to be encrypted
+    if(password != NULL){
+
+        // Allocate size for file bytes and extension into a buffer
+        int file_bytes_and_extension_size = source_file_size + extension_size;
+        uint8_t * file_bytes_and_extension = malloc(file_bytes_and_extension_size);
+
+        // Copy file bytes onto buffer
+        if(memcpy(file_bytes_and_extension , file_bytes, source_file_size) == NULL){
+            fprintf(stderr, "Failed copying source file content into buffer for encryption");
+            exit(-1);
+        }
+
+        // Copy extension onto buffer
+        if(memcpy(file_bytes_and_extension + source_file_size, extension, extension_size) == NULL){
+            fprintf(stderr, "Failed copying source file extension into buffer for encryption");
+            exit(-1);
+        }
+
+        // Encrypt file bytes and extension in their buffer
+        uint8_t * cyphertext = malloc(file_bytes_and_extension_size + EVP_MAX_BLOCK_LENGTH);
+        uint32_t cyphertext_size;
+        cyphertext_size = encrypt(encryption_algorithm, encryption_mode, file_bytes_and_extension, file_bytes_and_extension_size, password, cyphertext);
+        cyphertext = realloc(cyphertext, cyphertext_size); // Trim buffer size to match the size actually used by encryption
+
+        //Encrypt new size
+        cyphertext_size = to_big_endian_32(cyphertext_size);
+        uint8_t * encrypted_cyphertext_size = malloc(sizeof(cyphertext_size) + EVP_MAX_BLOCK_LENGTH)  ;
+        uint32_t encrypted_cyphertext_size_size;
+        encrypted_cyphertext_size_size = encrypt(encryption_algorithm, encryption_mode, (uint8_t *) &cyphertext_size, sizeof(cyphertext_size), password, encrypted_cyphertext_size);
+        encrypted_cyphertext_size = realloc(encrypted_cyphertext_size, encrypted_cyphertext_size_size); // Trim buffer size to match the size actually used by encryption
+
+        // Check if the size of the encrypted cyphertext size fits in the allotted 4 bytes
+        if(encrypted_cyphertext_size_size != sizeof(cyphertext_size)){
+            fprintf(stderr, "Encrypted message size doesn't fit in allotted 4 bytes, something went wrong in the encryption for the embedding");
+            exit(-1);
+        }
+
+        uint32_t needed_space = sizeof(cyphertext_size) + cyphertext_size;
+        uint8_t * encrypted_message = malloc(needed_space);
+        
+        // Copy encrypted message size onto encrypted message
+        if(memcpy(encrypted_message, encrypted_cyphertext_size, sizeof(cyphertext_size)) == NULL){
+            fprintf(stderr, "Error copying encrypted file size onto message");
+            exit(-1);
+        }
+
+        // Copy encrypted file bytes and extension onto encrypted message
+        if(memcpy(encrypted_message + sizeof(cyphertext_size), cyphertext, cyphertext_size) == NULL){
+            fprintf(stderr, "Error copying encrypted file and extension onto message");
+            exit(-1);
+        }
+
+        embedding->message = encrypted_message;
+        embedding->output_file = output_bmp;
+        embedding->needed_space = needed_space;
+        return;
+    }
+
+    // Check if source file can fit in the carrier bmp
+    uint32_t needed_space = sizeof(source_file_size) + source_file_size + strlen(extension)+1;
+
+    if( carrier_bmp_body_size < needed_space){
+        fprintf(stderr, "Source file is too big to fit in the carrier bmp\n");
+        exit(-1);
+    }    
+
     // Create data to hide (size|bytes|extension)
     uint8_t * message = (uint8_t *) malloc(needed_space);
 
-    // Size (Big endian)
+    // Copy size (Big endian) into message
     uint32_t source_file_size_big_endian = to_big_endian_32(source_file_size);
     if(memcpy(message, &source_file_size_big_endian, sizeof(source_file_size_big_endian)) == NULL){
         fprintf(stderr, "Failed copying source file size into message");
         exit(-1);
     }
 
-    // File bytes
-    uint8_t * file_bytes = (uint8_t *) malloc(source_file_size);
-    if (fread(file_bytes, source_file_size, 1, source_file) != 1){
-        fprintf(stderr, "Cannot read file bytes\n");
-        exit(-1);
-    }
-
+    // Copy file bytes onto message
     if(memcpy(message + sizeof(source_file_size), file_bytes, source_file_size) == NULL){
         fprintf(stderr, "Failed copying source file content into message");
         exit(-1);
     }
 
-    // Extension
+    // Copy extension onto message
     if(memcpy(message + sizeof(source_file_size) + source_file_size, extension, strlen(extension)+1) == NULL){
         fprintf(stderr, "Failed copying source file extension into message");
         exit(-1);
-    }
+    }    
     
     embedding->message = message;
     embedding->output_file = output_bmp;
@@ -163,9 +225,9 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, embeddin
 }
 
 //---------------------------------------LSB1------------------------------------------
-bmp_file * lsb1_embed(bmp_file * carrier_bmp, char * source_file_path){
+bmp_file * lsb1_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     embedding_t embedding;
-    prepare_embedding(carrier_bmp, source_file_path, &embedding);
+    prepare_embedding(carrier_bmp, source_file_path, encryption_algorithm, encryption_mode, password, &embedding);
 
     int bits_placed = 0;
     int pixel_index = 0;
@@ -294,7 +356,7 @@ FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
 
 }
 
-FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, int encryption_algorithm, int encryption_mode, char * password){
+FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     
     //DECRYPTION
     int PADDING = 500;
@@ -377,9 +439,9 @@ FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
 
 
 //---------------------------------------LSB4------------------------------------------
-bmp_file * lsb4_embed(bmp_file * carrier_bmp, char * source_file_path){
+bmp_file * lsb4_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     embedding_t embedding;
-    prepare_embedding(carrier_bmp, source_file_path, &embedding);
+    prepare_embedding(carrier_bmp, source_file_path, encryption_algorithm, encryption_mode, password, &embedding);
 
     int bits_placed = 0;
     int pixel_index = 0;
@@ -509,7 +571,7 @@ FILE * lsb4_extract(bmp_file * carrier_bmp, char * output_file_name){
 }
 
 
-FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, int encryption_algorithm, int encryption_mode, char * password){
+FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     
     //DECRYPTION
     int PADDING = 500;
@@ -598,9 +660,9 @@ typedef struct{
 } pattern_t;
 
 
-bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
+bmp_file * lsbi_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     embedding_t embedding;
-    prepare_embedding(carrier_bmp, source_file_path, &embedding);
+    prepare_embedding(carrier_bmp, source_file_path, encryption_algorithm, encryption_mode, password, &embedding);
 
     // Preprare patterns
     pattern_t patterns[4];    
@@ -617,7 +679,7 @@ bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
   
 
     //Copy message to hide in output bmp
-    while(byte_counter < embedding.needed_space+4){
+    for( int i= 0; i < embedding.needed_space+4; i++){
         //Skip 4 bytes to save space for pattern swaps back into the carrier    
         if(byte_counter < 4){
             byte_counter++;
@@ -626,7 +688,7 @@ bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
             }
         }    
         else{
-            uint8_t message_byte = embedding.message[byte_counter-4];
+            uint8_t message_byte = embedding.message[i-4];
             for(int j = 0; j < 8 ; j++){
                 uint8_t bit = (message_byte >> (7-j)) & mask; // Get the bit in the least significant bit
                 uint8_t byte =  carrier_bmp->body[pixel_index].colors[byte_counter%3]; // Get the byte to hide the bit in
@@ -645,10 +707,6 @@ bmp_file * lsbi_embed(bmp_file * carrier_bmp, char * source_file_path){
             }
         }
     } 
-
-
-    write_bmp_file(embedding.output_file, "prueba.bmp");
-
 
     for(int i=0; i<4; i++){
         if(patterns[i].changed_count > patterns[i].total_count/2)
@@ -826,7 +884,7 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
 
 }
 
-FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, int encryption_algorithm, int encryption_mode, char * password){
+FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
 
     //DECRYPTION
     int PADDING = 500;
@@ -940,20 +998,20 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
 
 }
 
-bmp_file * (*embed_functions[3])(bmp_file * carrier_bmp, char * input_file_path)= {lsb1_embed,lsb4_embed,lsbi_embed};
-bmp_file * (*embed_with_encryption_functions[3])(bmp_file * carrier_bmp, char * input_file_path,int encryption_algorithm, int encryption_mode, char * password);//={lsb1_embed_with_encryption,lsb4_embed_with_encryption,lsbi_embed_with_encryption};
+bmp_file * (*embed_with_encryption_functions[3])(bmp_file * carrier_bmp, char * input_file_path,encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password) = {lsb1_embed_with_encryption,lsb4_embed_with_encryption,lsbi_embed_with_encryption};
+
 FILE * (*extract_functions[3])(bmp_file * carrier_bmp, char * output_file_name)= {lsb1_extract,lsb4_extract,lsbi_extract};
-FILE * (*extract_with_encryption_functions[3])(bmp_file * carrier_bmp, char * output_file_name,int encryption_algorithm, int encryption_mode, char * password)= {lsb1_extract_with_encryption,lsb4_extract_with_encryption,lsbi_extract_with_encryption};
-bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path,int encryption_algorithm, int encryption_mode, char * password){
-    if(password == NULL){
-        return (*embed_functions[stego])(carrier_bmp,input_file_path);
-    }
-    return (*embed_with_encryption_functions[stego])(carrier_bmp,input_file_path,encryption_algorithm,encryption_mode,password);
-    
+
+FILE * (*extract_with_encryption_functions[3])(bmp_file * carrier_bmp, char * output_file_name,encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password) = {lsb1_extract_with_encryption,lsb4_extract_with_encryption,lsbi_extract_with_encryption};
+
+bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path,encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
+    return (*embed_with_encryption_functions[stego])(carrier_bmp,input_file_path,encryption_algorithm,encryption_mode,password);   
 }
-FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name,int encryption_algorithm, int encryption_mode, char * password){
+
+FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name,encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     if(password==NULL){
         return (*extract_functions[stego])(carrier_bmp,output_file_name);
     }
     return (*extract_with_encryption_functions[stego])(carrier_bmp,output_file_name,encryption_algorithm, encryption_mode, password);
 }
+
