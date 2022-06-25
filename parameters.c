@@ -3,8 +3,18 @@
 #include <string.h>    /* memset */
 #include <errno.h>
 #include <getopt.h>
+#include <ctype.h> // For toLower and toUpper
 
 #include "include/parameters.h"
+
+char* toLower(char* s) {
+  for(char *p=s; *p; p++) *p=tolower(*p);
+  return s;
+}
+char* toUpper(char* s) {
+  for(char *p=s; *p; p++) *p=toupper(*p);
+  return s;
+}
 
 
 static void
@@ -95,6 +105,8 @@ parameters_t * parse_args(const int argc, char **argv) {
             parameters->output_file_path = optarg;
             break;
         case 's':
+            toUpper(optarg);
+
             if(strcmp(optarg, "LSB1") == 0) {
                 parameters->stego_algorithm = LSB1;
             } else if(strcmp(optarg, "LSB4") == 0) {
@@ -107,6 +119,8 @@ parameters_t * parse_args(const int argc, char **argv) {
             }
             break;
         case 'a':
+            toUpper(optarg);
+
             if(strcmp(optarg, "AES128") == 0) {
                 parameters->encryption_algorithm = AES128;
             } else if(strcmp(optarg, "AES192") == 0) {
@@ -120,6 +134,8 @@ parameters_t * parse_args(const int argc, char **argv) {
             }
             break;  
         case 'm':
+            toUpper(optarg);
+
             if(strcmp(optarg, "ECB") == 0) {
                 parameters->encryption_mode = ECB;
             } else if(strcmp(optarg, "CFB") == 0) {

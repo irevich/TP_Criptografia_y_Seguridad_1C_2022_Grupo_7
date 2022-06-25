@@ -939,11 +939,8 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
             pixel_index++;
         } 
     }
-
-    // printf("The file size is %d\n",file_size);
-
+    
     //Then, we have to read the file bytes
-
     //Number of bytes to read of the carrier bmp
     uint32_t number_of_carrier_bytes = encrypted_file_size * 8;
 
@@ -961,7 +958,6 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
         }
        
         //Shift the bit to the left
-        // printf("Current LSB in byte %d is %d\n",i,bit);
         encrypted_file_bytes[i/8] = encrypted_file_bytes[i/8] << 1; //Shift the bit to the left
         encrypted_file_bytes[i/8] = encrypted_file_bytes[i/8] | bit; //Put the bit inside file_size
 
@@ -970,15 +966,7 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
             pixel_index++;
         }
 
-        // if(i!=0 && i%8==0){
-        //     printf("The byte number %d is : %x\n",i/8,file_bytes[-1+i/8]);
-        // }
-
     }
-
-    // printf("The byte number %d is : %x\n",file_size,file_bytes[file_size -1]);
-
-
     // Then, we have to decrypt the encrypted text
 
     //Allocate memory for the decrypted text
