@@ -89,7 +89,6 @@ FILE * get_file_from_decryption(uint8_t * decrypted_text, char * output_file_nam
 }
 
 void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password, embedding_t * embedding){
-    //TODO: Adapt to take additional parameters
     // Find size of source_file
     FILE * source_file = fopen(source_file_path, "r");
     if(source_file == NULL){

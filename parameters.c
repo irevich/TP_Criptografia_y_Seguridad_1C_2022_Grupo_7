@@ -37,10 +37,20 @@ usage(const char *progname) {
     exit(1);
 }
 
+void set_defaults(parameters_t * parameters){
+    parameters->encryption_algorithm = -1;
+    parameters->encryption_mode = -1;
+    parameters->password == NULL;
+}
+
 parameters_t * parse_args(const int argc, char **argv) {
     parameters_t * parameters = (parameters_t *) malloc(sizeof(parameters_t));
     memset(parameters, 0, sizeof(*parameters));
 
+    // Set default parameters
+    set_defaults(parameters);
+
+    // Configure parameter options
     char opt;
     int option_index = 0;
         static struct option long_options[] = {
@@ -58,6 +68,8 @@ parameters_t * parse_args(const int argc, char **argv) {
             {0, 0, 0, 0}
         };
         const char * short_options = "hAexip:o:s:a:m:k:";
+
+    // Read options
     while((opt = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1){
         switch (opt)
         {
@@ -104,8 +116,7 @@ parameters_t * parse_args(const int argc, char **argv) {
             } else if(strcmp(optarg, "DES") == 0) {
                 parameters->encryption_algorithm = DES;
             } else {
-                fprintf(stderr, "Invalid encryption algorithm\n");
-                exit(1);
+                fprintf(stderr, "Invalid encryption algorithm, using default\n");
             }
             break;  
         case 'm':
@@ -118,8 +129,7 @@ parameters_t * parse_args(const int argc, char **argv) {
             } else if(strcmp(optarg, "CBC") == 0) {
                 parameters->encryption_mode = CBC;
             } else {
-                fprintf(stderr, "Invalid encryption mode\n");
-                exit(1);
+                fprintf(stderr, "Invalid encryption mode, using default\n");
             }
             break;
         case 'k':
@@ -135,6 +145,15 @@ parameters_t * parse_args(const int argc, char **argv) {
             break;
         
         }      
+    }
+
+    // Load defaults for encryption
+    if(parameters->password != NULL){
+        if(parameters->encryption_algorithm == -1)
+            parameters->encryption_algorithm = AES128;
+        
+        if(parameters->encryption_mode == -1)
+            parameters->encryption_mode = CBC;
     }
     return parameters;
 }
