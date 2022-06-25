@@ -1,17 +1,7 @@
 #ifndef __PARAMETERS_H__
 #define __PARAMETERS_H__
 #include <stdbool.h>
-
-typedef struct parameters{
-    bool embed;
-    char * input_file_path;
-    char * carrier_file_path;
-    char * output_file_path;
-    int stego_algorithm;
-    int encryption_algorithm;
-    int encryption_mode;
-    char * password;
-} parameters_t;
+#include <stdint.h>
 
 typedef enum stego_algorithm {
     LSB1,
@@ -32,6 +22,17 @@ typedef enum encryption_mode {
     OFB,
     CBC
 } encryption_mode_t;
+
+typedef struct parameters{
+    bool embed;
+    char * input_file_path;
+    char * carrier_file_path;
+    char * output_file_path;
+    stego_algorithm_t stego_algorithm;
+    encryption_algorithm_t encryption_algorithm;
+    encryption_mode_t encryption_mode;
+    uint8_t * password;
+} parameters_t;
 
 /**
  * Interpreta la linea de comandos (argc, argv) llenando

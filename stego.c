@@ -88,7 +88,7 @@ FILE * get_file_from_decryption(uint8_t * decrypted_text, char * output_file_nam
     return output_file;
 }
 
-void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password, embedding_t * embedding){
+void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password, embedding_t * embedding){
     // Find size of source_file
     FILE * source_file = fopen(source_file_path, "r");
     if(source_file == NULL){
@@ -131,7 +131,7 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
     }
 
     // Message is to be encrypted
-    if(encryption_algorithm >= 0 && encryption_mode >= 0){
+    if(password != NULL){
 
         // Allocate size for file bytes and extension into a buffer
         int file_bytes_and_extension_size = source_file_size + extension_size;
@@ -150,15 +150,17 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
         }
 
         // Encrypt file bytes and extension in their buffer
-        uint8_t * cyphertext;
+        uint8_t * cyphertext = malloc(file_bytes_and_extension_size + EVP_MAX_BLOCK_LENGTH);
         uint32_t cyphertext_size;
         cyphertext_size = encrypt(encryption_algorithm, encryption_mode, file_bytes_and_extension, file_bytes_and_extension_size, password, cyphertext);
+        cyphertext = realloc(cyphertext, cyphertext_size); // Trim buffer size to match the size actually used by encryption
 
         //Encrypt new size
         cyphertext_size = to_big_endian_32(cyphertext_size);
-        uint8_t * encrypted_cyphertext_size;
+        uint8_t * encrypted_cyphertext_size = malloc(sizeof(cyphertext_size) + EVP_MAX_BLOCK_LENGTH)  ;
         uint32_t encrypted_cyphertext_size_size;
-        encrypted_cyphertext_size_size = encrypt(encryption_algorithm, encryption_mode, &cyphertext_size, sizeof(cyphertext_size), password, encrypted_cyphertext_size);
+        encrypted_cyphertext_size_size = encrypt(encryption_algorithm, encryption_mode, (uint8_t *) &cyphertext_size, sizeof(cyphertext_size), password, encrypted_cyphertext_size);
+        encrypted_cyphertext_size = realloc(encrypted_cyphertext_size, encrypted_cyphertext_size_size); // Trim buffer size to match the size actually used by encryption
 
         // Check if the size of the encrypted cyphertext size fits in the allotted 4 bytes
         if(encrypted_cyphertext_size_size != sizeof(cyphertext_size)){
@@ -223,7 +225,7 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
 }
 
 //---------------------------------------LSB1------------------------------------------
-bmp_file * lsb1_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password){
+bmp_file * lsb1_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     embedding_t embedding;
     prepare_embedding(carrier_bmp, source_file_path, encryption_algorithm, encryption_mode, password, &embedding);
 
@@ -354,7 +356,7 @@ FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
 
 }
 
-FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password){
+FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     
     //DECRYPTION
     int PADDING = 500;
@@ -437,7 +439,7 @@ FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
 
 
 //---------------------------------------LSB4------------------------------------------
-bmp_file * lsb4_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password){
+bmp_file * lsb4_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     embedding_t embedding;
     prepare_embedding(carrier_bmp, source_file_path, encryption_algorithm, encryption_mode, password, &embedding);
 
@@ -569,7 +571,7 @@ FILE * lsb4_extract(bmp_file * carrier_bmp, char * output_file_name){
 }
 
 
-FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password){
+FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     
     //DECRYPTION
     int PADDING = 500;
@@ -658,7 +660,7 @@ typedef struct{
 } pattern_t;
 
 
-bmp_file * lsbi_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password){
+bmp_file * lsbi_embed_with_encryption(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     embedding_t embedding;
     prepare_embedding(carrier_bmp, source_file_path, encryption_algorithm, encryption_mode, password, &embedding);
 
@@ -882,7 +884,7 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
 
 }
 
-FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password){
+FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
 
     //DECRYPTION
     int PADDING = 500;
@@ -997,11 +999,16 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
 }
 
 // Functions for abstraction in main
-const bmp_file * (*embed_functions[3])(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, char * password)= {lsb1_embed_with_encryption,lsb4_embed_with_encryption,lsbi_embed_with_encryption};
-const FILE * (*extract_functions[3])(bmp_file * carrier_bmp, char * output_file_name)= {lsb1_extract,lsb4_extract,lsbi_extract};
+const bmp_file * (*embed_functions[3])(bmp_file * carrier_bmp, char * source_file_path, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password) = 
+{lsb1_embed_with_encryption,lsb4_embed_with_encryption,lsbi_embed_with_encryption};
+
+const FILE * (*extract_functions[3])(bmp_file * carrier_bmp, char * output_file_name)= 
+{lsb1_extract,lsb4_extract,lsbi_extract};
+
 bmp_file * embed(bmp_file * carrier_bmp, parameters_t * parameters){
     return (*embed_functions[parameters->stego_algorithm])(carrier_bmp,parameters->input_file_path, parameters->encryption_algorithm, parameters->encryption_mode, parameters->password);
 }
+
 FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name){
     return (*extract_functions[stego])(carrier_bmp,output_file_name);
 }
