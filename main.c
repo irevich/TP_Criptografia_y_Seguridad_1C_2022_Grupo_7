@@ -3,7 +3,7 @@
 #include "include/bmp_parsing.h"
 #include "include/parameters.h"
 #include "include/stego.h"
-
+#include "include/encription.h"
 
 
 int main(int argc, char *argv[]) {
@@ -43,3 +43,5 @@ int main(int argc, char *argv[]) {
     
     return 0;
 }
+
+
