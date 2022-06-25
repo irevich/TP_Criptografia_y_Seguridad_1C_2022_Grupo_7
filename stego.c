@@ -156,10 +156,10 @@ void prepare_embedding(bmp_file * carrier_bmp, char * source_file_path, encrypti
         cyphertext = realloc(cyphertext, cyphertext_size); // Trim buffer size to match the size actually used by encryption
 
         //Encrypt new size
-        cyphertext_size = to_big_endian_32(cyphertext_size);
+        uint32_t cyphertext_size_big_endian = to_big_endian_32(cyphertext_size);
         uint8_t * encrypted_cyphertext_size = malloc(sizeof(cyphertext_size) + EVP_MAX_BLOCK_LENGTH)  ;
         uint32_t encrypted_cyphertext_size_size;
-        encrypted_cyphertext_size_size = encrypt(encryption_algorithm, encryption_mode, (uint8_t *) &cyphertext_size, sizeof(cyphertext_size), password, encrypted_cyphertext_size);
+        encrypted_cyphertext_size_size = encrypt(encryption_algorithm, encryption_mode, (uint8_t *) &cyphertext_size_big_endian, sizeof(cyphertext_size_big_endian), password, encrypted_cyphertext_size);
         encrypted_cyphertext_size = realloc(encrypted_cyphertext_size, encrypted_cyphertext_size_size); // Trim buffer size to match the size actually used by encryption
 
         // Check if the size of the encrypted cyphertext size fits in the allotted 4 bytes
