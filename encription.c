@@ -4,9 +4,14 @@
 const EVP_CIPHER * (*encryption_algorithm_functions[16])(void)= {EVP_aes_128_ecb,EVP_aes_128_cfb,EVP_aes_128_ofb,EVP_aes_128_cbc,EVP_aes_192_ecb,EVP_aes_192_cfb,EVP_aes_192_ofb,EVP_aes_192_cbc,EVP_aes_256_ecb,EVP_aes_256_cfb,EVP_aes_256_ofb,EVP_aes_256_cbc,EVP_des_ecb,EVP_des_cfb,EVP_des_ofb,EVP_des_cbc,
 };
 
-int encrypt(char algorithm,char mode, unsigned char *plaintext, int plaintext_len, unsigned char *key,unsigned char *iv, unsigned char *ciphertext) {
+const char* encryption_cyphernames[16] = {"aes-128-ecb","aes-128-cfb","aes-128-ofb","aes-128-cbc","aes-192-ecb","aes-192-cfb","aes-192-ofb","aes-192-cbc","aes-256-ecb","aes-256-cfb","aes-256-ofb","aes-256-cbc","des-ecb","des-cfb","des-ofb","des-cbc"};
+
+int encrypt(encryption_algorithm_t algorithm,encryption_mode_t mode, unsigned char *plaintext, int plaintext_len, unsigned char *password, unsigned char *ciphertext) {
     int option_index = algorithm*4 + mode;
-    
+    unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
+    EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
+        (unsigned char *) password,
+        strlen(password), 1, key, iv);
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -51,8 +56,12 @@ int encrypt(char algorithm,char mode, unsigned char *plaintext, int plaintext_le
     return ciphertext_len;
 }
 
-int decrypt(char algorithm,char mode,unsigned char *ciphertext, int ciphertext_len, unsigned char *key,unsigned char *iv, unsigned char *plaintext) {
+int decrypt(encryption_algorithm_t algorithm,encryption_mode_t mode,unsigned char *ciphertext, int ciphertext_len, unsigned char *password, unsigned char *plaintext) {
         int option_index = algorithm*4 + mode;
+            unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
+    EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
+        (unsigned char *) password,
+        strlen(password), 1, key, iv);
     EVP_CIPHER_CTX *ctx;
 
     int len;
@@ -100,17 +109,8 @@ int decrypt(char algorithm,char mode,unsigned char *ciphertext, int ciphertext_l
 
 // int main (void)
 // {
-//     /*
-//      * Set up the key and iv. Do I need to say to not hard code these in a
-//      * real application? :-)
-//      */
 
-//     /* A 256 bit key */
-//     unsigned char *key = (unsigned char *)"01234567890123456789012345678901";
-//     //unsigned char *key = (unsigned char *)"hola";
-
-//     /* A 128 bit IV */
-//     unsigned char *iv = (unsigned char *)"0123456789012345";
+//     char *password = (unsigned char *)"igolyj...";
 
 //     /* Message to be encrypted */
 //     unsigned char *plaintext =
@@ -124,12 +124,12 @@ int decrypt(char algorithm,char mode,unsigned char *ciphertext, int ciphertext_l
 //     unsigned char ciphertext[128];
 
 //     /* Buffer for the decrypted text */
-//     unsigned char decryptedtext[128];
+//     unsigned char decryptedtext[128+EVP_MAX_BLOCK_LENGTH];
 
 //     int decryptedtext_len, ciphertext_len;
 
 //     /* Encrypt the plaintext */
-//     ciphertext_len = encrypt (0,1, plaintext, strlen ((char *)plaintext), key, iv,
+//     ciphertext_len = encrypt (AES128,CBC, plaintext, strlen ((char *)plaintext), password,
 //                               ciphertext);
 
 //     /* Do something useful with the ciphertext here */
@@ -137,7 +137,7 @@ int decrypt(char algorithm,char mode,unsigned char *ciphertext, int ciphertext_l
 //     BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
 
 //     /* Decrypt the ciphertext */
-//     decryptedtext_len = decrypt(0,1,ciphertext, ciphertext_len, key, iv,
+//     decryptedtext_len = decrypt(AES128,CBC,ciphertext, ciphertext_len, password,
 //                                 decryptedtext);
 
 //     /* Add a NULL terminator. We are expecting printable text */
