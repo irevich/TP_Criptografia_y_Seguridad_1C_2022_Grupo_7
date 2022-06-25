@@ -940,11 +940,20 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
 
 }
 
-const bmp_file * (*embed_functions[3])(bmp_file * carrier_bmp, char * input_file_path)= {lsb1_embed,lsb4_embed,lsbi_embed};
-const FILE * (*extract_functions[3])(bmp_file * carrier_bmp, char * output_file_name)= {lsb1_extract,lsb4_extract,lsbi_extract};
-bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path){
-    return (*embed_functions[stego])(carrier_bmp,input_file_path);
+bmp_file * (*embed_functions[3])(bmp_file * carrier_bmp, char * input_file_path)= {lsb1_embed,lsb4_embed,lsbi_embed};
+bmp_file * (*embed_with_encryption_functions[3])(bmp_file * carrier_bmp, char * input_file_path,int encryption_algorithm, int encryption_mode, char * password);//={lsb1_embed_with_encryption,lsb4_embed_with_encryption,lsbi_embed_with_encryption};
+FILE * (*extract_functions[3])(bmp_file * carrier_bmp, char * output_file_name)= {lsb1_extract,lsb4_extract,lsbi_extract};
+FILE * (*extract_with_encryption_functions[3])(bmp_file * carrier_bmp, char * output_file_name,int encryption_algorithm, int encryption_mode, char * password)= {lsb1_extract_with_encryption,lsb4_extract_with_encryption,lsbi_extract_with_encryption};
+bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path,int encryption_algorithm, int encryption_mode, char * password){
+    if(password == NULL){
+        return (*embed_functions[stego])(carrier_bmp,input_file_path);
+    }
+    return (*embed_with_encryption_functions[stego])(carrier_bmp,input_file_path,encryption_algorithm,encryption_mode,password);
+    
 }
-FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name){
-    return (*extract_functions[stego])(carrier_bmp,output_file_name);
+FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name,int encryption_algorithm, int encryption_mode, char * password){
+    if(password==NULL){
+        return (*extract_functions[stego])(carrier_bmp,output_file_name);
+    }
+    return (*extract_with_encryption_functions[stego])(carrier_bmp,output_file_name,encryption_algorithm, encryption_mode, password);
 }

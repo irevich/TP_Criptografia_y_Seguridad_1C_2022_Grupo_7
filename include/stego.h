@@ -6,8 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path);
-FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name);
+bmp_file * embed(stego_algorithm_t stego,bmp_file * carrier_bmp, char * input_file_path,int encryption_algorithm, int encryption_mode, char * password);
+FILE * extract(stego_algorithm_t stego,bmp_file * carrier_bmp, char * output_file_name,int encryption_algorithm, int encryption_mode, char * password);
 
 //With encryption
 
