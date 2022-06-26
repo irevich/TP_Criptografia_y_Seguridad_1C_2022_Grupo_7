@@ -1,7 +1,7 @@
 
 #include "include/encription.h"
 
-const EVP_CIPHER * (*encryption_algorithm_functions[16])(void)= {EVP_aes_128_ecb,EVP_aes_128_cfb,EVP_aes_128_ofb,EVP_aes_128_cbc,EVP_aes_192_ecb,EVP_aes_192_cfb,EVP_aes_192_ofb,EVP_aes_192_cbc,EVP_aes_256_ecb,EVP_aes_256_cfb,EVP_aes_256_ofb,EVP_aes_256_cbc,EVP_des_ecb,EVP_des_cfb,EVP_des_ofb,EVP_des_cbc,
+const EVP_CIPHER * (*encryption_algorithm_functions[16])(void)= {EVP_aes_128_ecb,EVP_aes_128_cfb8,EVP_aes_128_ofb,EVP_aes_128_cbc,EVP_aes_192_ecb,EVP_aes_192_cfb8,EVP_aes_192_ofb,EVP_aes_192_cbc,EVP_aes_256_ecb,EVP_aes_256_cfb8,EVP_aes_256_ofb,EVP_aes_256_cbc,EVP_des_ecb,EVP_des_cfb8,EVP_des_ofb,EVP_des_cbc,
 };
 
 const char* encryption_cyphernames[16] = {"aes-128-ecb","aes-128-cfb","aes-128-ofb","aes-128-cbc","aes-192-ecb","aes-192-cfb","aes-192-ofb","aes-192-cbc","aes-256-ecb","aes-256-cfb","aes-256-ofb","aes-256-cbc","des-ecb","des-cfb","des-ofb","des-cbc"};
@@ -57,11 +57,9 @@ int encrypt(encryption_algorithm_t algorithm,encryption_mode_t mode, unsigned ch
 }
 
 int decrypt(encryption_algorithm_t algorithm,encryption_mode_t mode,unsigned char *ciphertext, int ciphertext_len, unsigned char *password, unsigned char *plaintext) {
-        int option_index = algorithm*4 + mode;
-            unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
-    EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,
-        (unsigned char *) password,
-        strlen((char *)password), 1, key, iv);
+    int option_index = algorithm*4 + mode;
+    unsigned char key[EVP_MAX_KEY_LENGTH], iv[EVP_MAX_IV_LENGTH];
+    EVP_BytesToKey(EVP_get_cipherbyname(encryption_cyphernames[option_index]), EVP_get_digestbyname("sha256"), NULL,(unsigned char *) password,strlen((char *)password), 1, key, iv);
     EVP_CIPHER_CTX *ctx;
 
     int len;

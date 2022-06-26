@@ -330,7 +330,6 @@ FILE * lsb1_extract(bmp_file * carrier_bmp, char * output_file_name){
 FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     
     //DECRYPTION
-    int PADDING = 500;
     
     int i;
     
@@ -391,7 +390,7 @@ FILE * lsb1_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
     // Then, we have to decrypt the encrypted text
 
     //Allocate memory for the decrypted text
-    uint8_t * decrypted_text = (uint8_t *) malloc(encrypted_file_size+PADDING);
+    uint8_t * decrypted_text = (uint8_t *) malloc(encrypted_file_size+EVP_MAX_BLOCK_LENGTH);
 
      // Decrypt the ciphertext
     int decrypted_text_len = decrypt(encryption_algorithm,encryption_mode,encrypted_file_bytes, encrypted_file_size,(unsigned char *)password,decrypted_text);
@@ -545,7 +544,6 @@ FILE * lsb4_extract(bmp_file * carrier_bmp, char * output_file_name){
 FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
     
     //DECRYPTION
-    int PADDING = 500;
     
     int i;
     
@@ -605,8 +603,8 @@ FILE * lsb4_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
     // Then, we have to decrypt the encrypted text
 
     //Allocate memory for the decrypted text
-    uint8_t * decrypted_text = (uint8_t *) malloc(encrypted_file_size+PADDING);
-
+    uint8_t * decrypted_text = (uint8_t *) malloc(encrypted_file_size+EVP_MAX_BLOCK_LENGTH);
+    
      // Decrypt the ciphertext
     int decrypted_text_len = decrypt(encryption_algorithm,encryption_mode,encrypted_file_bytes, encrypted_file_size,(unsigned char *)password,decrypted_text);
 
@@ -858,7 +856,6 @@ FILE * lsbi_extract(bmp_file * carrier_bmp, char * output_file_name){
 FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_name, encryption_algorithm_t encryption_algorithm, encryption_mode_t encryption_mode, uint8_t * password){
 
     //DECRYPTION
-    int PADDING = 500;
 
     int i;
     
@@ -941,7 +938,7 @@ FILE * lsbi_extract_with_encryption(bmp_file * carrier_bmp, char * output_file_n
     // Then, we have to decrypt the encrypted text
 
     //Allocate memory for the decrypted text
-    uint8_t * decrypted_text = (uint8_t *) malloc(encrypted_file_size+PADDING);
+    uint8_t * decrypted_text = (uint8_t *) malloc(encrypted_file_size+EVP_MAX_BLOCK_LENGTH);
 
      // Decrypt the ciphertext
     int decrypted_text_len = decrypt(encryption_algorithm,encryption_mode,encrypted_file_bytes, encrypted_file_size,(unsigned char *)password,decrypted_text);
