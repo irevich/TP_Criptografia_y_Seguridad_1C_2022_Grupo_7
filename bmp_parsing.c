@@ -30,6 +30,13 @@ bmp_file *read_bmp_file(char *filepath)
       fprintf(stderr, "Failed to read BMP info header\n");
       exit(-1);
    }
+
+   // Check compression
+   if (info_header->compression!=0)
+   {
+      fprintf(stderr, "BMP must not be compressed\n");
+      exit(-1);
+   }
    
    fprintf(stderr, "Image size = %d x %d\n", info_header->width, info_header->height);
    fprintf(stderr, "Number of colour planes is %d\n", info_header->planes);
@@ -42,8 +49,8 @@ bmp_file *read_bmp_file(char *filepath)
    // Check if file is a bitmap
    if (header->type != 'M' * 256 + 'B')
    {
-      fclose(fp);
-      return NULL;
+      fprintf(stderr, "File must be a Bitmap\n");
+      exit(-1);
    }
 
    // Then, we read the body
@@ -158,4 +165,72 @@ int ReadUInt(FILE *fptr, unsigned int *n, int swap)
       cptr[2] = tmp;
    }
    return (TRUE);
+}
+
+int get_bmp_body_bit_difference(bmp_file * original_bmp, bmp_file * new_bmp ){
+   
+   int i,j;
+   int different_bits = 0;
+   int pixel_index = 0;
+   uint8_t mask = 0x01; //Mask that preserves lowest bit
+   
+   //Get the pointers to bmp bodys
+   pixel * original_bmp_body = original_bmp->body;
+   pixel * new_bmp_body = new_bmp->body;
+
+   // printf("Hola 2\n");
+
+   //Get body size
+   int original_body_size = (sizeof(pixel) * (original_bmp->info_header->width) * (original_bmp->info_header->height));
+
+   //We iterate through the different bits in original and new bmp bodys, and check if they differ or not
+   for(i = 0;i < original_body_size ; i++){
+      // printf("i = %d\n",i);
+      for(j = 0; j < 8 ; j++){
+            uint8_t original_bit = (original_bmp_body[pixel_index].colors[i%3] >> (7-j)) & mask;
+            uint8_t new_bit = (new_bmp_body[pixel_index].colors[i%3] >> (7-j)) & mask;
+
+            if(original_bit!=new_bit){
+               different_bits++;
+            }
+      }
+      if(i%3 == 0){
+         pixel_index++;
+      }        
+   }
+
+   return different_bits;
+
+}
+
+int get_bmp_body_byte_difference(bmp_file * original_bmp, bmp_file * new_bmp ){
+   
+   int i;
+   int different_bytes = 0;
+   int pixel_index = 0;
+   
+   //Get the pointers to bmp bodys
+   pixel * original_bmp_body = original_bmp->body;
+   pixel * new_bmp_body = new_bmp->body;
+
+   //Get body size
+   int original_body_size = (sizeof(pixel) * (original_bmp->info_header->width) * (original_bmp->info_header->height));
+
+   //We iterate through the different bytes in original and new bmp bodys, and check if they differ or not
+   for(i = 0;i < original_body_size ; i++){
+
+      uint8_t original_byte = original_bmp_body[pixel_index].colors[i%3];
+      uint8_t new_byte = new_bmp_body[pixel_index].colors[i%3];
+
+      if(original_byte!=new_byte){
+         different_bytes++;
+      }
+
+      if(i%3 == 0){
+         pixel_index++;
+      }        
+   }
+
+   return different_bytes;
+
 }

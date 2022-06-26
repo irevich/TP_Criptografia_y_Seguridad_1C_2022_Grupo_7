@@ -61,5 +61,11 @@ int ReadUInt(FILE *fptr,uint32_t *n,int swap);
 // Writes the bmp file {file} in the path {filepath}
 void write_bmp_file(bmp_file * file, char * filepath);
 
+// Calculates the difference in bits between bmp's bodys
+int get_bmp_body_bit_difference(bmp_file * original_bmp, bmp_file * new_bmp );
+
+// Calculates the difference in bytes between bmp's bodys
+int get_bmp_body_byte_difference(bmp_file * original_bmp, bmp_file * new_bmp );
+
 
 #endif
